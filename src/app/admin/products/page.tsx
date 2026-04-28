@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Product, ProductCategory } from '@/lib/types';
-import { Plus, Pencil, Trash2, Upload, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, AlertCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -14,11 +14,12 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({
     name: '', model: '', description: '', category_id: '',
-    image_url: '', manual_url: '', certificate_url: '', sort_order: 0,
+    image_urls: [] as string[], manual_url: '', certificate_url: '', sort_order: 0,
   });
-  const [uploading, setUploading] = useState<string>('');
+  const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const fetchData = useCallback(async () => {
     const [productsRes, categoriesRes] = await Promise.all([
@@ -36,10 +37,43 @@ export default function ProductsPage() {
     ? products
     : products.filter((p) => p.category_id === filterCategory);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string, bucket: string) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(field);
+    setUploading(true);
+    setUploadError('');
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'product-images');
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        setForm((f) => ({ ...f, image_urls: [...f.image_urls, data.url] }));
+      } else {
+        setUploadError(data.error || '上传失败，请先在 Supabase Storage 中创建 product-images bucket（设为 Public）');
+      }
+    } catch {
+      setUploadError('网络错误，上传失败');
+    }
+    setUploading(false);
+  };
+
+  const handleAddImageUrl = () => {
+    const url = imageUrlInput.trim();
+    if (!url) return;
+    setForm((f) => ({ ...f, image_urls: [...f.image_urls, url] }));
+    setImageUrlInput('');
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setForm((f) => ({ ...f, image_urls: f.image_urls.filter((_, i) => i !== index) }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string, bucket: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
     setUploadError('');
     const formData = new FormData();
     formData.append('file', file);
@@ -50,25 +84,27 @@ export default function ProductsPage() {
       if (data.url) {
         setForm((f) => ({ ...f, [field]: data.url }));
       } else {
-        setUploadError(data.error || `上传失败，请先在 Supabase Storage 中创建 ${bucket} bucket（设为 Public）`);
+        setUploadError(data.error || `上传失败，请先创建 ${bucket} bucket`);
       }
     } catch {
       setUploadError('网络错误，上传失败');
     }
-    setUploading('');
+    setUploading(false);
   };
 
   const handleSave = async () => {
     setSaving(true);
+    const payload = { ...form };
     if (editing) {
-      await supabase.from('products').update(form).eq('id', editing.id);
+      await supabase.from('products').update(payload).eq('id', editing.id);
     } else {
-      await supabase.from('products').insert(form);
+      await supabase.from('products').insert(payload);
     }
     setSaving(false);
     setShowForm(false);
     setEditing(null);
-    setForm({ name: '', model: '', description: '', category_id: '', image_url: '', manual_url: '', certificate_url: '', sort_order: 0 });
+    setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], manual_url: '', certificate_url: '', sort_order: 0 });
+    setImageUrlInput('');
     fetchData();
   };
 
@@ -76,11 +112,12 @@ export default function ProductsPage() {
     setEditing(p);
     setForm({
       name: p.name, model: p.model, description: p.description || '',
-      category_id: p.category_id, image_url: p.image_url || '',
+      category_id: p.category_id, image_urls: p.image_urls || [],
       manual_url: p.manual_url || '', certificate_url: p.certificate_url || '',
       sort_order: p.sort_order,
     });
     setUploadError('');
+    setImageUrlInput('');
     setShowForm(true);
   };
 
@@ -99,8 +136,9 @@ export default function ProductsPage() {
         <button
           onClick={() => {
             setEditing(null);
-            setForm({ name: '', model: '', description: '', category_id: categories[0]?.id || '', image_url: '', manual_url: '', certificate_url: '', sort_order: 0 });
+            setForm({ name: '', model: '', description: '', category_id: categories[0]?.id || '', image_urls: [], manual_url: '', certificate_url: '', sort_order: 0 });
             setUploadError('');
+            setImageUrlInput('');
             setShowForm(true);
           }}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
@@ -154,9 +192,68 @@ export default function ProductsPage() {
                 <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-              {(['image_url', 'manual_url', 'certificate_url'] as const).map((field) => {
-                const labels = { image_url: '产品图片', manual_url: '产品手册', certificate_url: '证书文件' };
-                const buckets = { image_url: 'product-images', manual_url: 'documents', certificate_url: 'documents' };
+
+              {/* 多图上传 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  产品图片 <span className="text-gray-400 font-normal">（支持多张）</span>
+                </label>
+                {/* 已添加的图片列表 */}
+                {form.image_urls.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {form.image_urls.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img src={url} alt={`图片 ${idx + 1}`} className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                        <span className="absolute bottom-0.5 left-0.5 text-[10px] bg-black/50 text-white px-1 rounded">{idx + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* 添加方式：URL 输入 + 上传 */}
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={imageUrlInput}
+                      onChange={(e) => setImageUrlInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl(); } }}
+                      placeholder="输入图片 URL 后回车添加"
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddImageUrl}
+                      disabled={!imageUrlInput.trim()}
+                      className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 shrink-0"
+                    >
+                      添加
+                    </button>
+                  </div>
+                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm w-fit">
+                    <Upload size={14} />
+                    <span>{uploading ? '上传中...' : '上传图片文件'}</span>
+                    <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+                  </label>
+                </div>
+                {uploadError && (
+                  <div className="flex items-start space-x-1 mt-2 text-red-600 text-xs">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 产品手册 & 证书 */}
+              {(['manual_url', 'certificate_url'] as const).map((field) => {
+                const labels = { manual_url: '产品手册', certificate_url: '证书文件' };
+                const buckets = { manual_url: 'documents', certificate_url: 'documents' };
                 return (
                   <div key={field}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels[field]}</label>
@@ -165,24 +262,13 @@ export default function ProductsPage() {
                         placeholder="输入 URL 或点击上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                       <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
                         <Upload size={14} />
-                        <span>{uploading === field ? '上传中...' : '上传'}</span>
-                        <input type="file" accept={field === 'image_url' ? 'image/*' : '.pdf'} onChange={(e) => handleUpload(e, field, buckets[field])} className="hidden" />
+                        <span>{uploading ? '上传中...' : '上传'}</span>
+                        <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="hidden" />
                       </label>
                     </div>
-                    {field === 'image_url' && form.image_url && (
-                      <div className="mt-2">
-                        <img src={form.image_url} alt="预览" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
-                      </div>
-                    )}
                   </div>
                 );
               })}
-              {uploadError && (
-                <div className="flex items-start space-x-1 text-red-600 text-xs">
-                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">排序</label>
                 <input type="number" value={form.sort_order} onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
@@ -206,6 +292,7 @@ export default function ProductsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">图片</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">名称</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">型号</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">所属大类</th>
@@ -215,12 +302,26 @@ export default function ProductsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">加载中...</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">加载中...</td></tr>
               ) : filteredProducts.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">暂无数据</td></tr>
+                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">暂无数据</td></tr>
               ) : (
                 filteredProducts.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-3">
+                      {p.image_urls && p.image_urls.length > 0 ? (
+                        <div className="relative group">
+                          <img src={p.image_urls[0]} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                          {p.image_urls.length > 1 && (
+                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-blue-500 text-white text-[10px] rounded-full flex items-center justify-center">
+                              {p.image_urls.length}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">无图</div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{p.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{p.model}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{categoryName(p.category_id)}</td>

@@ -13,7 +13,7 @@ export interface Product {
   name: string;
   model: string;
   description: string;
-  image_url: string;
+  image_urls: string[]; // 支持多张图片
   manual_url: string;
   certificate_url: string;
   sort_order: number;

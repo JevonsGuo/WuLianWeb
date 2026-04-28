@@ -13,14 +13,14 @@ CREATE TABLE IF NOT EXISTS product_categories (
   updated_at timestamptz DEFAULT now()
 );
 
--- 2. 创建产品表
+-- 2. 创建产品表（image_urls 为多图数组）
 CREATE TABLE IF NOT EXISTS products (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   category_id uuid NOT NULL REFERENCES product_categories(id) ON DELETE CASCADE,
   name text NOT NULL,
   model text NOT NULL,
   description text,
-  image_url text,
+  image_urls text[] DEFAULT '{}',
   manual_url text,
   certificate_url text,
   sort_order integer DEFAULT 0,
@@ -39,12 +39,17 @@ CREATE TABLE IF NOT EXISTS solutions (
   created_at timestamptz DEFAULT now()
 );
 
+-- 3.5 如果从旧版升级（image_url → image_urls），取消下面注释执行：
+-- ALTER TABLE products ADD COLUMN IF NOT EXISTS image_urls text[] DEFAULT '{}';
+-- UPDATE products SET image_urls = ARRAY[image_url] WHERE image_url IS NOT NULL AND image_url != '';
+-- ALTER TABLE products DROP COLUMN IF EXISTS image_url;
+
 -- 4. 启用 RLS
 ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE solutions ENABLE ROW LEVEL SECURITY;
 
--- 5. 公开读取策略（先删除再创建，避免重复）
+-- 5. 公开读取策略
 DROP POLICY IF EXISTS "Public read categories" ON product_categories;
 DROP POLICY IF EXISTS "Public read products" ON products;
 DROP POLICY IF EXISTS "Public read solutions" ON solutions;
@@ -53,7 +58,7 @@ CREATE POLICY "Public read categories" ON product_categories FOR SELECT USING (t
 CREATE POLICY "Public read products" ON products FOR SELECT USING (true);
 CREATE POLICY "Public read solutions" ON solutions FOR SELECT USING (true);
 
--- 6. 写入策略（先删除再创建）
+-- 6. 写入策略
 DROP POLICY IF EXISTS "Allow insert categories" ON product_categories;
 DROP POLICY IF EXISTS "Allow update categories" ON product_categories;
 DROP POLICY IF EXISTS "Allow delete categories" ON product_categories;
@@ -112,46 +117,71 @@ INSERT INTO product_categories (id, name, image_url, sort_order) VALUES
   ('a1b2c3d4-0001-4000-8000-000000000002', '工业机器人', 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=300&fit=crop', 2),
   ('a1b2c3d4-0001-4000-8000-000000000003', '视觉检测系统', 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop', 3);
 
--- 智能传感器下的产品
-INSERT INTO products (id, category_id, name, model, description, image_url, manual_url, certificate_url, sort_order) VALUES
+-- 智能传感器下的产品（每个产品含多张图片）
+INSERT INTO products (id, category_id, name, model, description, image_urls, manual_url, certificate_url, sort_order) VALUES
   ('b1b2c3d4-0001-4000-8000-000000000001', 'a1b2c3d4-0001-4000-8000-000000000001',
    '高精度激光测距传感器', 'LS-1000',
    '测量范围 0.1-50m，精度 ±1mm，适用于工业自动化距离测量与定位场景。支持 RS485/Modbus 通信协议，响应时间 <5ms。',
-   'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop', '', '', 1),
+   ARRAY[
+     'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop'
+   ], '', '', 1),
 
   ('b1b2c3d4-0001-4000-8000-000000000002', 'a1b2c3d4-0001-4000-8000-000000000001',
    '工业级温度传感器', 'TS-2000',
    '测温范围 -40°C 到 125°C，IP67 防护等级，4-20mA 模拟输出。适用于恶劣工业环境下的温度监测。',
-   'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop', '', '', 2),
+   ARRAY[
+     'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop'
+   ], '', '', 2),
 
   ('b1b2c3d4-0001-4000-8000-000000000003', 'a1b2c3d4-0001-4000-8000-000000000001',
    '多轴加速度传感器', 'AS-3000',
    '6 轴加速度 + 陀螺仪，高精度 IMU 模块，适用于振动监测与姿态检测。支持 SPI/I2C 接口。',
-   'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop', '', '', 3);
+   ARRAY[
+     'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop'
+   ], '', '', 3);
 
 -- 工业机器人下的产品
-INSERT INTO products (id, category_id, name, model, description, image_url, manual_url, certificate_url, sort_order) VALUES
+INSERT INTO products (id, category_id, name, model, description, image_urls, manual_url, certificate_url, sort_order) VALUES
   ('b1b2c3d4-0001-4000-8000-000000000004', 'a1b2c3d4-0001-4000-8000-000000000002',
    '六轴协作机器人', 'CR-600',
    '负载 6kg，臂展 900mm，重复定位精度 ±0.02mm。支持拖拽示教与图形化编程，适用于柔性产线。',
-   'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=600&fit=crop', '', '', 1),
+   ARRAY[
+     'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1561557944-6e7876e5c7cf?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop'
+   ], '', '', 1),
 
   ('b1b2c3d4-0001-4000-8000-000000000005', 'a1b2c3d4-0001-4000-8000-000000000002',
    'SCARA 高速分拣机器人', 'SR-400',
    '负载 3kg，循环时间 0.4s，适用于电子元器件高速分拣与装配。支持视觉引导。',
-   'https://images.unsplash.com/photo-1561557944-6e7876e5c7cf?w=600&h=600&fit=crop', '', '', 2);
+   ARRAY[
+     'https://images.unsplash.com/photo-1561557944-6e7876e5c7cf?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=600&fit=crop'
+   ], '', '', 2);
 
 -- 视觉检测系统下的产品
-INSERT INTO products (id, category_id, name, model, description, image_url, manual_url, certificate_url, sort_order) VALUES
+INSERT INTO products (id, category_id, name, model, description, image_urls, manual_url, certificate_url, sort_order) VALUES
   ('b1b2c3d4-0001-4000-8000-000000000006', 'a1b2c3d4-0001-4000-8000-000000000003',
    '工业 3D 视觉检测系统', 'VS-8000',
    '千万级像素 3D 相机，检测精度 0.01mm，集成深度学习算法。适用于表面缺陷检测与尺寸测量。',
-   'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=600&fit=crop', '', '', 1),
+   ARRAY[
+     'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1586953208270-767889fa9b0e?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop'
+   ], '', '', 1),
 
   ('b1b2c3d4-0001-4000-8000-000000000007', 'a1b2c3d4-0001-4000-8000-000000000003',
    '智能 barcode/QR 读码器', 'BC-500',
    '高速一维/二维条码读取，读取速度 >60 次/秒，IP65 防护。适用于产线追溯与物流分拣。',
-   'https://images.unsplash.com/photo-1586953208270-767889fa9b0e?w=600&h=600&fit=crop', '', '', 2);
+   ARRAY[
+     'https://images.unsplash.com/photo-1586953208270-767889fa9b0e?w=600&h=600&fit=crop',
+     'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=600&fit=crop'
+   ], '', '', 2);
 
 -- 解决方案
 INSERT INTO solutions (id, industry_name, image_url, description, related_product_ids, sort_order) VALUES

@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, FileText, Award } from 'lucide-react';
+import { X, FileText, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product } from '@/lib/types';
 
 interface ProductModalProps {
@@ -11,10 +12,31 @@ interface ProductModalProps {
 }
 
 export default function ProductModal({ product, open, onClose }: ProductModalProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   if (!product) return null;
 
+  const images = product.image_urls || [];
+  const hasMultipleImages = images.length > 1;
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  // Reset image index when product changes
+  const handleOpenChange = (v: boolean) => {
+    if (!v) {
+      onClose();
+      setCurrentImageIndex(0);
+    }
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-2xl max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden focus:outline-none">
@@ -24,14 +46,47 @@ export default function ProductModal({ product, open, onClose }: ProductModalPro
           </Dialog.Close>
 
           <div className="overflow-y-auto max-h-[85vh]">
-            {/* Product Image */}
-            <div className="w-full aspect-video bg-gray-100">
-              {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+            {/* Product Image Carousel */}
+            <div className="w-full aspect-video bg-gray-100 relative group">
+              {images.length > 0 ? (
+                <>
+                  <img
+                    src={images[currentImageIndex]}
+                    alt={`${product.name} - 图片 ${currentImageIndex + 1}`}
+                    className="w-full h-full object-cover transition-opacity duration-300"
+                  />
+                  {/* Left/Right navigation arrows */}
+                  {hasMultipleImages && (
+                    <>
+                      <button
+                        onClick={handlePrevImage}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <ChevronLeft size={20} className="text-gray-700" />
+                      </button>
+                      <button
+                        onClick={handleNextImage}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <ChevronRight size={20} className="text-gray-700" />
+                      </button>
+                      {/* Dot indicators */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1.5">
+                        {images.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentImageIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              idx === currentImageIndex
+                                ? 'bg-white w-5'
+                                : 'bg-white/60 hover:bg-white/80'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
                   <span className="text-blue-300 text-6xl font-bold">
@@ -40,6 +95,25 @@ export default function ProductModal({ product, open, onClose }: ProductModalPro
                 </div>
               )}
             </div>
+
+            {/* Thumbnail strip for multiple images */}
+            {hasMultipleImages && (
+              <div className="flex gap-2 px-6 pt-4 overflow-x-auto">
+                {images.map((url, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                      idx === currentImageIndex
+                        ? 'border-blue-500 shadow-sm'
+                        : 'border-transparent opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={url} alt={`缩略图 ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Product Details */}
             <div className="p-6 md:p-8">
