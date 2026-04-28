@@ -1,10 +1,16 @@
 -- =============================================
 -- 物联网设备公司产品展示网站 - 数据库迁移脚本
 -- 在 Supabase SQL Editor 中执行（可重复执行）
+-- 不启用 RLS，清空历史数据后重建
 -- =============================================
 
--- 1. 创建产品大类表
-CREATE TABLE IF NOT EXISTS product_categories (
+-- 1. 删除旧表（清除所有历史数据）
+DROP TABLE IF EXISTS solutions CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS product_categories CASCADE;
+
+-- 2. 创建产品大类表
+CREATE TABLE product_categories (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   image_url text,
@@ -13,8 +19,8 @@ CREATE TABLE IF NOT EXISTS product_categories (
   updated_at timestamptz DEFAULT now()
 );
 
--- 2. 创建产品表（image_urls 为多图数组）
-CREATE TABLE IF NOT EXISTS products (
+-- 3. 创建产品表（image_urls 为多图数组）
+CREATE TABLE products (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   category_id uuid NOT NULL REFERENCES product_categories(id) ON DELETE CASCADE,
   name text NOT NULL,
@@ -28,8 +34,8 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at timestamptz DEFAULT now()
 );
 
--- 3. 创建解决方案表
-CREATE TABLE IF NOT EXISTS solutions (
+-- 4. 创建解决方案表
+CREATE TABLE solutions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   industry_name text NOT NULL,
   image_url text,
@@ -39,51 +45,12 @@ CREATE TABLE IF NOT EXISTS solutions (
   created_at timestamptz DEFAULT now()
 );
 
--- 3.5 如果从旧版升级（image_url → image_urls），取消下面注释执行：
--- ALTER TABLE products ADD COLUMN IF NOT EXISTS image_urls text[] DEFAULT '{}';
--- UPDATE products SET image_urls = ARRAY[image_url] WHERE image_url IS NOT NULL AND image_url != '';
--- ALTER TABLE products DROP COLUMN IF EXISTS image_url;
+-- 5. 不启用 RLS（已默认关闭，显式禁用以确保）
+ALTER TABLE product_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE solutions DISABLE ROW LEVEL SECURITY;
 
--- 4. 启用 RLS
-ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE solutions ENABLE ROW LEVEL SECURITY;
-
--- 5. 公开读取策略
-DROP POLICY IF EXISTS "Public read categories" ON product_categories;
-DROP POLICY IF EXISTS "Public read products" ON products;
-DROP POLICY IF EXISTS "Public read solutions" ON solutions;
-
-CREATE POLICY "Public read categories" ON product_categories FOR SELECT USING (true);
-CREATE POLICY "Public read products" ON products FOR SELECT USING (true);
-CREATE POLICY "Public read solutions" ON solutions FOR SELECT USING (true);
-
--- 6. 写入策略
-DROP POLICY IF EXISTS "Allow insert categories" ON product_categories;
-DROP POLICY IF EXISTS "Allow update categories" ON product_categories;
-DROP POLICY IF EXISTS "Allow delete categories" ON product_categories;
-
-DROP POLICY IF EXISTS "Allow insert products" ON products;
-DROP POLICY IF EXISTS "Allow update products" ON products;
-DROP POLICY IF EXISTS "Allow delete products" ON products;
-
-DROP POLICY IF EXISTS "Allow insert solutions" ON solutions;
-DROP POLICY IF EXISTS "Allow update solutions" ON solutions;
-DROP POLICY IF EXISTS "Allow delete solutions" ON solutions;
-
-CREATE POLICY "Allow insert categories" ON product_categories FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow update categories" ON product_categories FOR UPDATE USING (true);
-CREATE POLICY "Allow delete categories" ON product_categories FOR DELETE USING (true);
-
-CREATE POLICY "Allow insert products" ON products FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow update products" ON products FOR UPDATE USING (true);
-CREATE POLICY "Allow delete products" ON products FOR DELETE USING (true);
-
-CREATE POLICY "Allow insert solutions" ON solutions FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow update solutions" ON solutions FOR UPDATE USING (true);
-CREATE POLICY "Allow delete solutions" ON solutions FOR DELETE USING (true);
-
--- 7. 更新时间触发器
+-- 6. 更新时间触发器
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -104,12 +71,8 @@ CREATE TRIGGER update_products_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- =============================================
--- 示例数据（先清空再插入，图片使用 Unsplash 网络链接）
+-- 示例数据（图片使用 Unsplash 网络链接）
 -- =============================================
-
-DELETE FROM solutions;
-DELETE FROM products;
-DELETE FROM product_categories;
 
 -- 产品大类
 INSERT INTO product_categories (id, name, image_url, sort_order) VALUES
