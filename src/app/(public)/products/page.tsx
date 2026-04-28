@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ProductCategory, Product } from '@/lib/types';
@@ -8,7 +8,7 @@ import CategorySidebar from '@/components/CategorySidebar';
 import ProductGrid from '@/components/ProductGrid';
 import ProductModal from '@/components/ProductModal';
 
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
 
@@ -116,5 +116,21 @@ export default function ProductsPage() {
         onClose={handleCloseModal}
       />
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-gray-50 py-8">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="animate-pulse h-8 bg-gray-200 rounded w-32 mb-6" />
+          </div>
+        </div>
+      }
+    >
+      <ProductsContent />
+    </Suspense>
   );
 }
