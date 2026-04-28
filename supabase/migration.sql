@@ -1,6 +1,6 @@
 -- =============================================
 -- 物联网设备公司产品展示网站 - 数据库迁移脚本
--- 在 Supabase SQL Editor 中执行
+-- 在 Supabase SQL Editor 中执行（可重复执行）
 -- =============================================
 
 -- 1. 创建产品大类表
@@ -44,12 +44,28 @@ ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE solutions ENABLE ROW LEVEL SECURITY;
 
--- 5. 公开读取策略
+-- 5. 公开读取策略（先删除再创建，避免重复）
+DROP POLICY IF EXISTS "Public read categories" ON product_categories;
+DROP POLICY IF EXISTS "Public read products" ON products;
+DROP POLICY IF EXISTS "Public read solutions" ON solutions;
+
 CREATE POLICY "Public read categories" ON product_categories FOR SELECT USING (true);
 CREATE POLICY "Public read products" ON products FOR SELECT USING (true);
 CREATE POLICY "Public read solutions" ON solutions FOR SELECT USING (true);
 
--- 6. 写入策略（需要 anon key 即可写入，用于后台管理）
+-- 6. 写入策略（先删除再创建）
+DROP POLICY IF EXISTS "Allow insert categories" ON product_categories;
+DROP POLICY IF EXISTS "Allow update categories" ON product_categories;
+DROP POLICY IF EXISTS "Allow delete categories" ON product_categories;
+
+DROP POLICY IF EXISTS "Allow insert products" ON products;
+DROP POLICY IF EXISTS "Allow update products" ON products;
+DROP POLICY IF EXISTS "Allow delete products" ON products;
+
+DROP POLICY IF EXISTS "Allow insert solutions" ON solutions;
+DROP POLICY IF EXISTS "Allow update solutions" ON solutions;
+DROP POLICY IF EXISTS "Allow delete solutions" ON solutions;
+
 CREATE POLICY "Allow insert categories" ON product_categories FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow update categories" ON product_categories FOR UPDATE USING (true);
 CREATE POLICY "Allow delete categories" ON product_categories FOR DELETE USING (true);
@@ -71,6 +87,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_product_categories_updated_at ON product_categories;
+DROP TRIGGER IF EXISTS update_products_updated_at ON products;
+
 CREATE TRIGGER update_product_categories_updated_at
   BEFORE UPDATE ON product_categories
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
@@ -80,8 +99,12 @@ CREATE TRIGGER update_products_updated_at
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- =============================================
--- 示例数据（图片使用 Unsplash 网络链接）
+-- 示例数据（先清空再插入，图片使用 Unsplash 网络链接）
 -- =============================================
+
+DELETE FROM solutions;
+DELETE FROM products;
+DELETE FROM product_categories;
 
 -- 产品大类
 INSERT INTO product_categories (id, name, image_url, sort_order) VALUES
