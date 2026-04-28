@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { Solution, Product } from '@/lib/types';
+import { Solution } from '@/lib/types';
 import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
+
+interface ProductOption {
+  id: string;
+  name: string;
+  model: string;
+}
 
 export default function SolutionsPage() {
   const [solutions, setSolutions] = useState<Solution[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Solution | null>(null);
