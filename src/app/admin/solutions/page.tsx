@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Solution } from '@/lib/types';
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, AlertCircle } from 'lucide-react';
 
 interface ProductOption {
   id: string;
@@ -22,6 +22,7 @@ export default function SolutionsPage() {
     related_product_ids: [] as string[], sort_order: 0,
   });
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -40,12 +41,18 @@ export default function SolutionsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError('');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('bucket', 'solution-images');
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.url) setForm((f) => ({ ...f, image_url: data.url }));
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) setForm((f) => ({ ...f, image_url: data.url }));
+      else setUploadError(data.error || '上传失败，请先在 Supabase Storage 中创建 solution-images bucket（设为 Public）');
+    } catch {
+      setUploadError('网络错误，上传失败');
+    }
     setUploading(false);
   };
 
@@ -105,6 +112,7 @@ export default function SolutionsPage() {
           onClick={() => {
             setEditing(null);
             setForm({ industry_name: '', image_url: '', description: '', related_product_ids: [], sort_order: 0 });
+            setUploadError('');
             setShowForm(true);
           }}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
@@ -127,14 +135,25 @@ export default function SolutionsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">行业图片</label>
                 <div className="flex items-center space-x-2">
-                  <input type="text" value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
-                    placeholder="图片 URL 或上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input type="text" value={form.image_url} onChange={(e) => { setForm((f) => ({ ...f, image_url: e.target.value })); setUploadError(''); }}
+                    placeholder="输入图片 URL 或点击上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                   <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
                     <Upload size={14} />
                     <span>{uploading ? '上传中...' : '上传'}</span>
                     <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
                   </label>
                 </div>
+                {uploadError && (
+                  <div className="flex items-start space-x-1 mt-2 text-red-600 text-xs">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                    <span>{uploadError}</span>
+                  </div>
+                )}
+                {form.image_url && (
+                  <div className="mt-2">
+                    <img src={form.image_url} alt="预览" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>

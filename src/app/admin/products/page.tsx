@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Product, ProductCategory } from '@/lib/types';
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, AlertCircle } from 'lucide-react';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -17,6 +17,7 @@ export default function ProductsPage() {
     image_url: '', manual_url: '', certificate_url: '', sort_order: 0,
   });
   const [uploading, setUploading] = useState<string>('');
+  const [uploadError, setUploadError] = useState('');
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -39,12 +40,21 @@ export default function ProductsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(field);
+    setUploadError('');
     const formData = new FormData();
     formData.append('file', file);
     formData.append('bucket', bucket);
-    const res = await fetch('/api/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.url) setForm((f) => ({ ...f, [field]: data.url }));
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        setForm((f) => ({ ...f, [field]: data.url }));
+      } else {
+        setUploadError(data.error || `上传失败，请先在 Supabase Storage 中创建 ${bucket} bucket（设为 Public）`);
+      }
+    } catch {
+      setUploadError('网络错误，上传失败');
+    }
     setUploading('');
   };
 
@@ -70,6 +80,7 @@ export default function ProductsPage() {
       manual_url: p.manual_url || '', certificate_url: p.certificate_url || '',
       sort_order: p.sort_order,
     });
+    setUploadError('');
     setShowForm(true);
   };
 
@@ -89,6 +100,7 @@ export default function ProductsPage() {
           onClick={() => {
             setEditing(null);
             setForm({ name: '', model: '', description: '', category_id: categories[0]?.id || '', image_url: '', manual_url: '', certificate_url: '', sort_order: 0 });
+            setUploadError('');
             setShowForm(true);
           }}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
@@ -149,17 +161,28 @@ export default function ProductsPage() {
                   <div key={field}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{labels[field]}</label>
                     <div className="flex items-center space-x-2">
-                      <input type="text" value={form[field]} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                        placeholder="URL 或上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                      <input type="text" value={form[field]} onChange={(e) => { setForm((f) => ({ ...f, [field]: e.target.value })); setUploadError(''); }}
+                        placeholder="输入 URL 或点击上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                       <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
                         <Upload size={14} />
                         <span>{uploading === field ? '上传中...' : '上传'}</span>
                         <input type="file" accept={field === 'image_url' ? 'image/*' : '.pdf'} onChange={(e) => handleUpload(e, field, buckets[field])} className="hidden" />
                       </label>
                     </div>
+                    {field === 'image_url' && form.image_url && (
+                      <div className="mt-2">
+                        <img src={form.image_url} alt="预览" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                      </div>
+                    )}
                   </div>
                 );
               })}
+              {uploadError && (
+                <div className="flex items-start space-x-1 text-red-600 text-xs">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">排序</label>
                 <input type="number" value={form.sort_order} onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
@@ -167,7 +190,7 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="flex justify-end space-x-3 mt-6">
-              <button onClick={() => { setShowForm(false); setEditing(null); }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">取消</button>
+              <button onClick={() => { setShowForm(false); setEditing(null); setUploadError(''); }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">取消</button>
               <button onClick={handleSave} disabled={saving || !form.name || !form.model || !form.category_id}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
