@@ -3,17 +3,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
-import { Plus, Pencil, Trash2, Upload, AlertCircle, X, FileText, Award, Paperclip } from 'lucide-react';
+import {
+  Plus, Pencil, Trash2, Upload, AlertCircle, X,
+  FileText, Award, Paperclip, Package, Save,
+  ChevronLeft, ImagePlus, Link2
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false });
+
+type TabKey = 'summary' | 'specs' | 'attachments';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({
     name: '', model: '', description: '', category_id: '',
@@ -26,6 +31,8 @@ export default function ProductsPage() {
   const [uploadError, setUploadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
+  const [activeTab, setActiveTab] = useState<TabKey>('summary');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const fetchData = useCallback(async () => {
     const [productsRes, categoriesRes] = await Promise.all([
@@ -98,7 +105,6 @@ export default function ProductsPage() {
     setUploading(false);
   };
 
-  // Attachment upload
   const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -112,13 +118,10 @@ export default function ProductsPage() {
         const res = await fetch('/api/upload', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.url) {
-          // Determine file type from name
           let fileType = 'other';
           const nameLower = file.name.toLowerCase();
           if (nameLower.includes('证书') || nameLower.includes('cert')) fileType = 'certificate';
           else if (nameLower.includes('手册') || nameLower.includes('manual')) fileType = 'manual';
-
-          // Save to DB
           await supabase.from('product_attachments').insert({
             product_id: editing?.id || 'pending',
             file_name: file.name,
@@ -131,7 +134,6 @@ export default function ProductsPage() {
         setUploadError('附件上传失败');
       }
     }
-    // Refresh attachments
     if (editing?.id) {
       const { data } = await supabase.from('product_attachments').select('*').eq('product_id', editing.id).order('sort_order');
       setAttachments(data || []);
@@ -160,17 +162,17 @@ export default function ProductsPage() {
       await supabase.from('products').update(payload).eq('id', editing.id);
     } else {
       const { data } = await supabase.from('products').insert(payload).select();
-      // Move pending attachments to the new product
       if (data && data[0]) {
         await supabase.from('product_attachments').update({ product_id: data[0].id }).eq('product_id', 'pending');
       }
     }
     setSaving(false);
-    setShowForm(false);
     setEditing(null);
     setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], main_image_url: '', summary_content: '', specifications_content: '', manual_url: '', certificate_url: '', sort_order: 0 });
     setImageUrlInput('');
     setAttachments([]);
+    setActiveTab('summary');
+    setCurrentImageIndex(0);
     fetchData();
   };
 
@@ -187,10 +189,10 @@ export default function ProductsPage() {
     });
     setUploadError('');
     setImageUrlInput('');
-    // Fetch attachments
+    setActiveTab('summary');
+    setCurrentImageIndex(0);
     const { data } = await supabase.from('product_attachments').select('*').eq('product_id', p.id).order('sort_order');
     setAttachments(data || []);
-    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -200,262 +202,471 @@ export default function ProductsPage() {
     fetchData();
   };
 
+  const handleCancel = () => {
+    setEditing(null);
+    setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], main_image_url: '', summary_content: '', specifications_content: '', manual_url: '', certificate_url: '', sort_order: 0 });
+    setUploadError('');
+    setImageUrlInput('');
+    setAttachments([]);
+    setActiveTab('summary');
+    setCurrentImageIndex(0);
+  };
+
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name || '-';
 
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">产品管理</h1>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setForm({ name: '', model: '', description: '', category_id: categories[0]?.id || '', image_urls: [], main_image_url: '', summary_content: '', specifications_content: '', manual_url: '', certificate_url: '', sort_order: 0 });
-            setUploadError('');
-            setImageUrlInput('');
-            setAttachments([]);
-            setShowForm(true);
-          }}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-        >
-          <Plus size={16} /><span>新增产品</span>
-        </button>
-      </div>
+  const isEditing = editing !== null;
 
-      {/* Filter */}
-      <div className="mb-4">
-        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-          <option value="all">所有大类</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-      </div>
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+    { key: 'summary', label: '产品概要', icon: <FileText size={14} /> },
+    { key: 'specs', label: '主要参数', icon: <Award size={14} /> },
+    { key: 'attachments', label: '证书与附件', icon: <Paperclip size={14} /> },
+  ];
 
-      {/* Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 pt-8 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-3xl mb-8">
-            <h2 className="text-lg font-bold mb-4">{editing ? '编辑产品' : '新增产品'}</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">产品名称 *</label>
-                  <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // ==================== Editing Mode ====================
+  if (isEditing) {
+    const images = form.image_urls;
+
+    return (
+      <div className="h-[calc(100vh-64px)] flex flex-col bg-white animate-fade-in">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-6 py-3 border-b border-surface-200/60 bg-surface-50/50">
+          <div className="flex items-center space-x-3">
+            <button onClick={handleCancel} className="p-1.5 hover:bg-surface-100 rounded-lg transition-colors">
+              <ChevronLeft size={18} className="text-surface-500" />
+            </button>
+            <h2 className="text-sm font-semibold text-surface-900">
+              {editing ? '编辑产品' : '新增产品'}
+            </h2>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleCancel}
+              className="px-4 py-1.5 text-sm text-surface-600 hover:bg-surface-100 rounded-lg transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || !form.name || !form.model || !form.category_id}
+              className="flex items-center space-x-1.5 px-4 py-1.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
+            >
+              <Save size={14} />
+              <span>{saving ? '保存中...' : '保存'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Main editing area - mirrors the frontend detail layout */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Top: Image + Basic Info (same layout as ProductDetail) */}
+          <div className="flex gap-8 p-8 border-b border-surface-100">
+            {/* Image area */}
+            <div className="shrink-0">
+              <div className="w-[300px] h-[300px] bg-surface-50 rounded-2xl overflow-hidden relative group ring-1 ring-surface-200/60">
+                {images.length > 0 ? (
+                  <>
+                    <img
+                      src={images[currentImageIndex]}
+                      alt="产品图片"
+                      className="w-full h-full object-contain"
+                    />
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentImageIndex((i) => (i - 1 + images.length) % images.length)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        >
+                          <ChevronLeft size={16} className="text-surface-600" />
+                        </button>
+                        <button
+                          onClick={() => setCurrentImageIndex((i) => (i + 1) % images.length)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        >
+                          <ChevronLeft size={16} className="text-surface-600 rotate-180" />
+                        </button>
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1.5">
+                          {images.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCurrentImageIndex(idx)}
+                              className={`rounded-full transition-all duration-200 ${
+                                idx === currentImageIndex ? 'bg-white w-5 h-1.5' : 'bg-white/50 w-1.5 h-1.5 hover:bg-white/80'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package size={48} className="text-surface-200" />
+                  </div>
+                )}
+              </div>
+
+              {/* Thumbnail strip with add/remove */}
+              <div className="flex gap-2 mt-3 px-0.5 overflow-x-auto pb-1 items-center">
+                {images.map((url, idx) => (
+                  <div key={idx} className="relative shrink-0 group/thumb">
+                    <button
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`w-14 h-14 rounded-xl overflow-hidden ring-2 transition-all duration-200 ${
+                        idx === currentImageIndex ? 'ring-brand-400 shadow-sm' : 'ring-surface-200 opacity-60 hover:opacity-80'
+                      }`}
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity shadow-sm"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+                {/* Add image button */}
+                <label className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
+                  <ImagePlus size={18} className="text-surface-400" />
+                  <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+                </label>
+              </div>
+
+              {/* URL input */}
+              <div className="flex items-center space-x-1.5 mt-2">
+                <div className="relative flex-1">
+                  <Link2 size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-300" />
+                  <input
+                    type="text"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl(); } }}
+                    placeholder="图片 URL"
+                    className="w-full pl-7 pr-2 py-1.5 border border-surface-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">型号 *</label>
-                  <input type="text" value={form.model} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <button
+                  onClick={handleAddImageUrl}
+                  disabled={!imageUrlInput.trim()}
+                  className="px-2 py-1.5 bg-surface-100 rounded-lg text-xs hover:bg-surface-200 disabled:opacity-50 transition-colors shrink-0"
+                >
+                  添加
+                </button>
+              </div>
+            </div>
+
+            {/* Basic info editing (mirrors the right side of ProductDetail) */}
+            <div className="flex-1 min-w-0 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-surface-500 mb-1.5">产品名称 *</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="输入产品名称"
+                  className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
+                />
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-surface-500 mb-1.5">型号 *</label>
+                  <input
+                    type="text"
+                    value={form.model}
+                    onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+                    placeholder="输入型号"
+                    className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
+                  />
+                </div>
+                <div className="w-24">
+                  <label className="block text-xs font-medium text-surface-500 mb-1.5">排序</label>
+                  <input
+                    type="number"
+                    value={form.sort_order}
+                    onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
+                    className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
+                  />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">所属大类 *</label>
-                <select value={form.category_id} onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                <label className="block text-xs font-medium text-surface-500 mb-1.5">所属大类 *</label>
+                <select
+                  value={form.category_id}
+                  onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow bg-white"
+                >
                   <option value="">请选择</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">产品简介</label>
-                <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-xs font-medium text-surface-500 mb-1.5">产品简介</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  placeholder="简要描述产品特点..."
+                  className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow resize-none"
+                />
               </div>
-
-              {/* 产品图片（多图） */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  产品图片 <span className="text-gray-400 font-normal">（多张）</span>
-                </label>
-                {form.image_urls.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {form.image_urls.map((url, idx) => (
-                      <div key={idx} className="relative group">
-                        <img src={url} alt={`图片 ${idx + 1}`} className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
-                        <button type="button" onClick={() => handleRemoveImage(idx)}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <label className="block text-xs font-medium text-surface-500 mb-1.5">详情页主图</label>
                 <div className="flex items-center space-x-2">
-                  <input type="text" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl(); } }}
-                    placeholder="输入图片 URL 回车添加" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                  <button type="button" onClick={handleAddImageUrl} disabled={!imageUrlInput.trim()}
-                    className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 shrink-0">添加</button>
-                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
-                    <Upload size={14} /><span>{uploading ? '上传中...' : '上传'}</span>
-                    <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-                  </label>
-                </div>
-              </div>
-
-              {/* 详情主图 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">详情页主图</label>
-                <div className="flex items-center space-x-2">
-                  <input type="text" value={form.main_image_url} onChange={(e) => setForm((f) => ({ ...f, main_image_url: e.target.value }))}
-                    placeholder="输入 URL 或上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
-                    <Upload size={14} /><span>上传</span>
+                  <input
+                    type="text"
+                    value={form.main_image_url}
+                    onChange={(e) => setForm((f) => ({ ...f, main_image_url: e.target.value }))}
+                    placeholder="主图 URL 或上传"
+                    className="flex-1 px-3.5 py-2 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
+                  />
+                  <label className="flex items-center space-x-1 px-3 py-2 bg-surface-50 border border-surface-200 rounded-xl cursor-pointer hover:bg-surface-100 text-sm shrink-0 transition-colors">
+                    <Upload size={14} className="text-surface-400" />
                     <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'main_image_url', 'product-images')} className="hidden" />
                   </label>
                 </div>
-                {form.main_image_url && (
-                  <img src={form.main_image_url} alt="主图预览" className="mt-2 w-24 h-24 rounded-lg object-cover border border-gray-200" />
-                )}
               </div>
+            </div>
+          </div>
 
-              {/* 产品概要 - 富文本 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">产品概要</label>
-                <RichTextEditor
-                  value={form.summary_content}
-                  onChange={(val: string) => setForm((f) => ({ ...f, summary_content: val }))}
-                  placeholder="输入产品概要介绍..."
-                />
-              </div>
+          {/* Tabbed content editing (mirrors the tab area of ProductDetail) */}
+          <div className="flex flex-col">
+            {/* Tab header */}
+            <div className="flex px-8 border-b border-surface-100">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center space-x-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all duration-200 -mb-px ${
+                    activeTab === tab.key
+                      ? 'border-brand-500 text-brand-600'
+                      : 'border-transparent text-surface-400 hover:text-surface-600'
+                  }`}
+                >
+                  {tab.icon}
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
 
-              {/* 主要参数 - 富文本 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">主要参数</label>
-                <RichTextEditor
-                  value={form.specifications_content}
-                  onChange={(val: string) => setForm((f) => ({ ...f, specifications_content: val }))}
-                  placeholder="输入产品技术参数..."
-                />
-              </div>
-
-              {/* 产品手册 & 证书 */}
-              <div className="grid grid-cols-2 gap-4">
-                {(['manual_url', 'certificate_url'] as const).map((field) => {
-                  const labels = { manual_url: '产品手册', certificate_url: '证书文件' };
-                  const buckets = { manual_url: 'documents', certificate_url: 'documents' };
-                  return (
-                    <div key={field}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">{labels[field]}</label>
-                      <div className="flex items-center space-x-2">
-                        <input type="text" value={form[field]} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                          placeholder="URL 或上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                        <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
-                          <Upload size={14} />
-                          <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="hidden" />
-                        </label>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* 附件管理 */}
-              {editing && (
+            {/* Tab content */}
+            <div className="p-8 animate-fade-in" key={activeTab}>
+              {activeTab === 'summary' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">证书与附件</label>
+                  <RichTextEditor
+                    value={form.summary_content}
+                    onChange={(val: string) => setForm((f) => ({ ...f, summary_content: val }))}
+                    placeholder="输入产品概要介绍..."
+                  />
+                </div>
+              )}
+
+              {activeTab === 'specs' && (
+                <div>
+                  <RichTextEditor
+                    value={form.specifications_content}
+                    onChange={(val: string) => setForm((f) => ({ ...f, specifications_content: val }))}
+                    placeholder="输入产品技术参数..."
+                  />
+                </div>
+              )}
+
+              {activeTab === 'attachments' && (
+                <div className="space-y-4">
+                  {/* Existing attachments */}
                   {attachments.length > 0 && (
-                    <div className="space-y-2 mb-3">
+                    <div className="space-y-2">
                       {attachments.map((att) => (
-                        <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                          <div className="flex items-center space-x-2 min-w-0">
-                            {att.file_type === 'certificate' ? <Award size={14} className="text-green-500" /> :
-                             att.file_type === 'manual' ? <FileText size={14} className="text-blue-500" /> :
-                             <Paperclip size={14} className="text-gray-500" />}
-                            <span className="text-sm truncate">{att.file_name}</span>
-                            <span className="text-xs text-gray-400 px-1 py-0.5 bg-gray-200 rounded">
-                              {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '附件'}
-                            </span>
+                        <div
+                          key={att.id}
+                          className="flex items-center justify-between p-3.5 bg-surface-50 rounded-xl border border-surface-200/60"
+                        >
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                              {att.file_type === 'certificate' ? <Award size={14} className="text-emerald-500" /> :
+                               att.file_type === 'manual' ? <FileText size={14} className="text-brand-500" /> :
+                               <Paperclip size={14} className="text-surface-400" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-surface-800 truncate">{att.file_name}</p>
+                              <div className="flex items-center space-x-2 text-xs text-surface-400 mt-0.5">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  att.file_type === 'certificate' ? 'bg-emerald-50 text-emerald-600' :
+                                  att.file_type === 'manual' ? 'bg-brand-50 text-brand-600' :
+                                  'bg-surface-100 text-surface-500'
+                                }`}>
+                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '附件'}
+                                </span>
+                                {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
+                              </div>
+                            </div>
                           </div>
-                          <button onClick={() => handleDeleteAttachment(att.id)} className="p-1 text-gray-400 hover:text-red-600 shrink-0">
+                          <button
+                            onClick={() => handleDeleteAttachment(att.id)}
+                            className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                          >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       ))}
                     </div>
                   )}
-                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm w-fit">
-                    <Upload size={14} /><span>{uploading ? '上传中...' : '添加附件'}</span>
+
+                  {/* Upload new attachment */}
+                  <label className="flex items-center space-x-2 px-4 py-3 bg-surface-50 border-2 border-dashed border-surface-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors w-fit">
+                    <Upload size={16} className="text-surface-400" />
+                    <span className="text-sm text-surface-600 font-medium">
+                      {uploading ? '上传中...' : '添加附件'}
+                    </span>
+                    <span className="text-xs text-surface-400">（PDF, ZIP, 图片等）</span>
                     <input type="file" multiple accept=".pdf,.zip,.rar,.jpg,.png" onChange={handleAttachmentUpload} className="hidden" />
                   </label>
+
+                  {/* Manual & Certificate URL */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-surface-200/60">
+                    {(['manual_url', 'certificate_url'] as const).map((field) => {
+                      const labels = { manual_url: '产品手册 URL', certificate_url: '证书文件 URL' };
+                      const buckets = { manual_url: 'documents', certificate_url: 'documents' };
+                      return (
+                        <div key={field}>
+                          <label className="block text-xs font-medium text-surface-500 mb-1.5">{labels[field]}</label>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={form[field]}
+                              onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                              placeholder="URL 或上传"
+                              className="flex-1 px-3 py-2 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
+                            />
+                            <label className="flex items-center px-2.5 py-2 bg-surface-50 border border-surface-200 rounded-xl cursor-pointer hover:bg-surface-100 shrink-0 transition-colors">
+                              <Upload size={14} className="text-surface-400" />
+                              <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="hidden" />
+                            </label>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
               {uploadError && (
-                <div className="flex items-start space-x-1 text-red-600 text-xs">
+                <div className="flex items-start space-x-2 text-red-500 text-xs mt-4 p-3 bg-red-50 rounded-xl">
                   <AlertCircle size={14} className="shrink-0 mt-0.5" />
                   <span>{uploadError}</span>
                 </div>
               )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">排序</label>
-                <input type="number" value={form.sort_order} onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3 mt-6">
-              <button onClick={() => { setShowForm(false); setEditing(null); setUploadError(''); setAttachments([]); }}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">取消</button>
-              <button onClick={handleSave} disabled={saving || !form.name || !form.model || !form.category_id}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
-                {saving ? '保存中...' : '保存'}
-              </button>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">图片</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">名称</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">型号</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">所属大类</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">排序</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">操作</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">加载中...</td></tr>
-              ) : filteredProducts.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-400">暂无数据</td></tr>
-              ) : (
-                filteredProducts.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-3">
-                      {p.image_urls && p.image_urls.length > 0 ? (
-                        <div className="relative">
-                          <img src={p.image_urls[0]} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
-                          {p.image_urls.length > 1 && (
-                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-blue-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                              {p.image_urls.length}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">无图</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{p.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{p.model}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{categoryName(p.category_id)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{p.sort_order}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button onClick={() => handleEdit(p)} className="p-2 text-gray-400 hover:text-blue-600"><Pencil size={16} /></button>
-                      <button onClick={() => handleDelete(p.id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 size={16} /></button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
+    );
+  }
+
+  // ==================== List Mode ====================
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900 tracking-tight">产品管理</h1>
+          <p className="text-sm text-surface-500 mt-1">管理所有产品信息，编辑界面与前台展示一致</p>
+        </div>
+        <button
+          onClick={() => {
+            setEditing({ id: '__new__' } as any);
+            setForm({ name: '', model: '', description: '', category_id: categories[0]?.id || '', image_urls: [], main_image_url: '', summary_content: '', specifications_content: '', manual_url: '', certificate_url: '', sort_order: 0 });
+            setUploadError('');
+            setImageUrlInput('');
+            setAttachments([]);
+            setActiveTab('summary');
+            setCurrentImageIndex(0);
+          }}
+          className="flex items-center space-x-2 px-4 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-700 text-sm font-medium shadow-sm shadow-brand-600/20 transition-colors"
+        >
+          <Plus size={16} /><span>新增产品</span>
+        </button>
+      </div>
+
+      {/* Filter */}
+      <div>
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="px-3.5 py-2 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/30 outline-none bg-white"
+        >
+          <option value="all">所有大类</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+
+      {/* Product cards grid */}
+      {loading ? (
+        <div className="text-center py-16 text-surface-400">加载中...</div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-surface-400">
+          <Package size={40} className="mb-3 text-surface-200" />
+          <p>暂无产品</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProducts.map((p) => {
+            const thumb = p.image_urls?.[0] || p.main_image_url;
+            return (
+              <div
+                key={p.id}
+                className="group bg-white rounded-2xl border border-surface-200/80 overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300"
+              >
+                <div className="aspect-[16/10] bg-gradient-to-br from-brand-50 to-surface-50 overflow-hidden relative">
+                  {thumb ? (
+                    <img src={thumb} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package size={32} className="text-surface-200" />
+                    </div>
+                  )}
+                  {(p.image_urls?.length || 0) > 1 && (
+                    <span className="absolute top-2.5 right-2.5 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-brand-600 text-xs font-medium rounded-lg shadow-sm">
+                      {p.image_urls.length} 张图
+                    </span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-semibold text-surface-900 truncate">{p.name}</h3>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-xs text-surface-500">{p.model}</span>
+                        <span className="text-surface-300">·</span>
+                        <span className="text-xs text-surface-400">{categoryName(p.category_id)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1 shrink-0 ml-2">
+                      <button
+                        onClick={() => handleEdit(p)}
+                        className="p-1.5 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

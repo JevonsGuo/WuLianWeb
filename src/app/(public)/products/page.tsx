@@ -7,6 +7,7 @@ import { ProductCategory, Product, ProductAttachment } from '@/lib/types';
 import CategoryList from '@/components/CategoryList';
 import ProductList from '@/components/ProductList';
 import ProductDetail from '@/components/ProductDetail';
+import { Package } from 'lucide-react';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -19,7 +20,6 @@ function ProductsContent() {
   const [attachments, setAttachments] = useState<ProductAttachment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch categories
   useEffect(() => {
     async function fetchCategories() {
       const { data } = await supabase
@@ -35,7 +35,6 @@ function ProductsContent() {
     fetchCategories();
   }, [categoryParam]);
 
-  // Fetch products when category changes
   const fetchProducts = useCallback(async (categoryId: string) => {
     const { data } = await supabase
       .from('products')
@@ -43,7 +42,6 @@ function ProductsContent() {
       .eq('category_id', categoryId)
       .order('sort_order');
     setProducts(data || []);
-    // Auto select first product
     if (data && data.length > 0) {
       setSelectedProductId(data[0].id);
     } else {
@@ -52,17 +50,11 @@ function ProductsContent() {
   }, []);
 
   useEffect(() => {
-    if (selectedCategoryId) {
-      fetchProducts(selectedCategoryId);
-    }
+    if (selectedCategoryId) fetchProducts(selectedCategoryId);
   }, [selectedCategoryId, fetchProducts]);
 
-  // Fetch attachments when product changes
   useEffect(() => {
-    if (!selectedProductId) {
-      setAttachments([]);
-      return;
-    }
+    if (!selectedProductId) { setAttachments([]); return; }
     async function fetchAttachments() {
       const { data } = await supabase
         .from('product_attachments')
@@ -82,22 +74,20 @@ function ProductsContent() {
     setAttachments([]);
   };
 
-  const handleProductSelect = (id: string) => {
-    setSelectedProductId(id);
-  };
+  const handleProductSelect = (id: string) => setSelectedProductId(id);
 
   if (loading) {
     return (
-      <div className="bg-gray-50 h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="animate-pulse text-gray-400">加载中...</div>
+      <div className="bg-surface-50 h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="animate-pulse text-surface-400">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white h-[calc(100vh-64px)] flex">
-      {/* 左侧栏：产品大类 */}
-      <div className="w-[280px] shrink-0 border-r border-gray-200 overflow-hidden">
+    <div className="bg-white h-[calc(100vh-64px)] flex three-column-layout">
+      {/* Left: Categories */}
+      <div className="w-[260px] shrink-0 border-r border-surface-200/60 overflow-hidden">
         <CategoryList
           categories={categories}
           selectedId={selectedCategoryId}
@@ -105,8 +95,8 @@ function ProductsContent() {
         />
       </div>
 
-      {/* 中间栏：产品列表 */}
-      <div className="w-[320px] shrink-0 border-r border-gray-200 overflow-hidden">
+      {/* Middle: Products */}
+      <div className="w-[300px] shrink-0 border-r border-surface-200/60 overflow-hidden">
         <ProductList
           products={products}
           selectedId={selectedProductId}
@@ -114,15 +104,16 @@ function ProductsContent() {
         />
       </div>
 
-      {/* 右侧栏：产品详情 */}
+      {/* Right: Detail */}
       <div className="flex-1 min-w-0 overflow-hidden">
         {selectedProduct ? (
           <ProductDetail product={selectedProduct} attachments={attachments} />
         ) : (
-          <div className="h-full flex items-center justify-center text-gray-400">
+          <div className="h-full flex items-center justify-center text-surface-400">
             <div className="text-center">
-              <p className="text-lg">请选择一个产品</p>
-              <p className="text-sm mt-1">从左侧选择大类，再选择具体产品查看详情</p>
+              <Package size={48} className="mx-auto mb-4 text-surface-200" />
+              <p className="text-base font-medium">请选择一个产品</p>
+              <p className="text-sm mt-1 text-surface-300">从左侧选择大类，再选择具体产品查看详情</p>
             </div>
           </div>
         )}
@@ -135,8 +126,8 @@ export default function ProductsPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-white h-[calc(100vh-64px)] flex items-center justify-center">
-          <div className="animate-pulse text-gray-400">加载中...</div>
+        <div className="bg-surface-50 h-[calc(100vh-64px)] flex items-center justify-center">
+          <div className="animate-pulse text-surface-400">加载中...</div>
         </div>
       }
     >

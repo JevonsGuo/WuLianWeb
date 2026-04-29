@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Product, ProductAttachment } from '@/lib/types';
-import { ChevronLeft, ChevronRight, FileText, Award, Paperclip, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Award, Paperclip, Download, Package } from 'lucide-react';
 
 interface ProductDetailProps {
   product: Product;
@@ -25,15 +25,21 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
   ];
 
   const fileIcon = (type: string) => {
-    if (type === 'certificate') return <Award size={16} className="text-green-500" />;
-    if (type === 'manual') return <FileText size={16} className="text-blue-500" />;
-    return <Paperclip size={16} className="text-gray-500" />;
+    if (type === 'certificate') return <Award size={16} className="text-emerald-500" />;
+    if (type === 'manual') return <FileText size={16} className="text-brand-500" />;
+    return <Paperclip size={16} className="text-surface-400" />;
   };
 
   const fileTypeLabel = (type: string) => {
     if (type === 'certificate') return '证书';
     if (type === 'manual') return '手册';
     return '附件';
+  };
+
+  const fileTypeColor = (type: string) => {
+    if (type === 'certificate') return 'bg-emerald-50 text-emerald-600';
+    if (type === 'manual') return 'bg-brand-50 text-brand-600';
+    return 'bg-surface-100 text-surface-500';
   };
 
   const formatFileSize = (bytes: number | null) => {
@@ -44,40 +50,42 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* 上半部分：主图 + 基本信息 */}
-      <div className="flex gap-6 p-6 border-b border-gray-100">
-        {/* 主图区域 */}
+    <div className="h-full flex flex-col overflow-hidden animate-fade-in">
+      {/* Top: Image + Info */}
+      <div className="flex gap-8 p-8 border-b border-surface-100">
+        {/* Image area */}
         <div className="shrink-0">
-          <div className="w-[300px] h-[300px] bg-gray-50 rounded-xl overflow-hidden relative group">
+          <div className="w-[300px] h-[300px] bg-surface-50 rounded-2xl overflow-hidden relative group ring-1 ring-surface-200/60">
             {images.length > 0 ? (
               <>
                 <img
                   src={images[currentImageIndex]}
                   alt={product.name}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain transition-transform duration-300"
                 />
                 {images.length > 1 && (
                   <>
                     <button
                       onClick={() => setCurrentImageIndex((i) => (i - 1 + images.length) % images.length)}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
                     >
-                      <ChevronLeft size={16} className="text-gray-600" />
+                      <ChevronLeft size={16} className="text-surface-600" />
                     </button>
                     <button
                       onClick={() => setCurrentImageIndex((i) => (i + 1) % images.length)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
                     >
-                      <ChevronRight size={16} className="text-gray-600" />
+                      <ChevronRight size={16} className="text-surface-600" />
                     </button>
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-1">
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-1.5">
                       {images.map((_, idx) => (
                         <button
                           key={idx}
                           onClick={() => setCurrentImageIndex(idx)}
-                          className={`w-1.5 h-1.5 rounded-full transition-all ${
-                            idx === currentImageIndex ? 'bg-white w-4' : 'bg-white/60'
+                          className={`rounded-full transition-all duration-200 ${
+                            idx === currentImageIndex
+                              ? 'bg-white w-5 h-1.5'
+                              : 'bg-white/50 w-1.5 h-1.5 hover:bg-white/80'
                           }`}
                         />
                       ))}
@@ -88,20 +96,22 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
             ) : mainImage ? (
               <img src={mainImage} alt={product.name} className="w-full h-full object-contain" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-300 text-6xl font-bold">
-                {product.name[0]}
+              <div className="w-full h-full flex items-center justify-center">
+                <Package size={64} className="text-surface-200" />
               </div>
             )}
           </div>
-          {/* 缩略图条 */}
+          {/* Thumbnail strip */}
           {images.length > 1 && (
-            <div className="flex gap-1.5 mt-2 px-1 overflow-x-auto">
+            <div className="flex gap-2 mt-3 px-0.5 overflow-x-auto pb-1">
               {images.map((url, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentImageIndex(idx)}
-                  className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
-                    idx === currentImageIndex ? 'border-blue-500' : 'border-transparent opacity-50 hover:opacity-80'
+                  className={`shrink-0 w-14 h-14 rounded-xl overflow-hidden ring-2 transition-all duration-200 ${
+                    idx === currentImageIndex
+                      ? 'ring-brand-400 shadow-sm'
+                      : 'ring-surface-200 opacity-40 hover:opacity-70'
                   }`}
                 >
                   <img src={url} alt="" className="w-full h-full object-cover" />
@@ -111,28 +121,30 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
           )}
         </div>
 
-        {/* 基本信息 */}
-        <div className="flex-1 min-w-0 pt-2">
-          <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
-          <p className="text-blue-600 font-medium mt-1">型号：{product.model}</p>
+        {/* Basic info */}
+        <div className="flex-1 min-w-0 pt-1">
+          <h1 className="text-2xl font-bold text-surface-900 tracking-tight">{product.name}</h1>
+          <div className="mt-2 inline-flex items-center px-2.5 py-1 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium">
+            型号：{product.model}
+          </div>
           {product.description && (
-            <p className="text-gray-600 mt-4 leading-relaxed">{product.description}</p>
+            <p className="text-surface-500 mt-5 leading-relaxed">{product.description}</p>
           )}
         </div>
       </div>
 
-      {/* 标签页区 */}
+      {/* Tabbed content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Tab 头 */}
-        <div className="flex border-b border-gray-200 px-6">
+        {/* Tab header */}
+        <div className="flex px-8 border-b border-surface-100">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center space-x-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`flex items-center space-x-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all duration-200 -mb-px ${
                 activeTab === tab.key
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-brand-500 text-brand-600'
+                  : 'border-transparent text-surface-400 hover:text-surface-600'
               }`}
             >
               {tab.icon}
@@ -141,17 +153,20 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
           ))}
         </div>
 
-        {/* Tab 内容 */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* Tab content */}
+        <div className="flex-1 overflow-y-auto p-8 animate-fade-in" key={activeTab}>
           {activeTab === 'summary' && (
             <div>
               {product.summary_content ? (
                 <div
-                  className="prose prose-sm max-w-none text-gray-700"
+                  className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: product.summary_content }}
                 />
               ) : (
-                <p className="text-gray-400">暂无产品概要</p>
+                <div className="flex flex-col items-center justify-center py-16 text-surface-400">
+                  <FileText size={32} className="mb-3 text-surface-200" />
+                  <p>暂无产品概要</p>
+                </div>
               )}
             </div>
           )}
@@ -160,11 +175,14 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
             <div>
               {product.specifications_content ? (
                 <div
-                  className="prose prose-sm max-w-none text-gray-700"
+                  className="prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: product.specifications_content }}
                 />
               ) : (
-                <p className="text-gray-400">暂无参数信息</p>
+                <div className="flex flex-col items-center justify-center py-16 text-surface-400">
+                  <Award size={32} className="mb-3 text-surface-200" />
+                  <p>暂无参数信息</p>
+                </div>
               )}
             </div>
           )}
@@ -172,20 +190,25 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
           {activeTab === 'attachments' && (
             <div>
               {attachments.length === 0 ? (
-                <p className="text-gray-400">暂无附件</p>
+                <div className="flex flex-col items-center justify-center py-16 text-surface-400">
+                  <Paperclip size={32} className="mb-3 text-surface-200" />
+                  <p>暂无附件</p>
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {attachments.map((att) => (
                     <div
                       key={att.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-4 bg-surface-50 rounded-xl border border-surface-200/60 hover:border-surface-300 transition-colors duration-200"
                     >
-                      <div className="flex items-center space-x-3 min-w-0">
-                        {fileIcon(att.file_type)}
+                      <div className="flex items-center space-x-3.5 min-w-0">
+                        <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                          {fileIcon(att.file_type)}
+                        </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{att.file_name}</p>
-                          <div className="flex items-center space-x-2 text-xs text-gray-400 mt-0.5">
-                            <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-500">
+                          <p className="text-sm font-medium text-surface-800 truncate">{att.file_name}</p>
+                          <div className="flex items-center space-x-2 text-xs text-surface-400 mt-0.5">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${fileTypeColor(att.file_type)}`}>
                               {fileTypeLabel(att.file_type)}
                             </span>
                             {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
@@ -195,7 +218,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                       <a
                         href={att.file_url}
                         download={att.file_name}
-                        className="flex items-center space-x-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shrink-0"
+                        className="flex items-center space-x-1.5 px-3.5 py-2 text-sm text-brand-600 hover:bg-brand-50 rounded-lg transition-colors duration-200 shrink-0 font-medium"
                       >
                         <Download size={14} />
                         <span>下载</span>

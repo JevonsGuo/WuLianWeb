@@ -1,42 +1,53 @@
+import { Mail, MapPin } from 'lucide-react';
+
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-400 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer className="bg-surface-900 text-surface-400 mt-auto">
+      {/* Top gradient accent */}
+      <div className="h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {/* 公司信息 */}
           <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="flex items-center space-x-2.5 mb-5">
+              <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-sm">物</span>
               </div>
-              <span className="text-lg font-bold text-white">物联智造</span>
+              <span className="text-lg font-bold text-white tracking-tight">物联智造</span>
             </div>
-            <p className="text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed text-surface-400">
               专业的工业物联网设备与解决方案提供商，致力于为制造业数字化转型提供核心硬件与系统支撑。
             </p>
           </div>
 
           {/* 快速链接 */}
           <div>
-            <h3 className="text-white font-semibold mb-4">快速链接</h3>
-            <ul className="space-y-2 text-sm">
-              <li><a href="/" className="hover:text-white transition-colors">首页</a></li>
-              <li><a href="/products" className="hover:text-white transition-colors">产品中心</a></li>
-              <li><a href="/solutions" className="hover:text-white transition-colors">解决方案</a></li>
+            <h3 className="text-white font-semibold mb-5 text-sm uppercase tracking-wider">快速链接</h3>
+            <ul className="space-y-3 text-sm">
+              <li><a href="/" className="hover:text-brand-300 transition-colors duration-200">首页</a></li>
+              <li><a href="/products" className="hover:text-brand-300 transition-colors duration-200">产品中心</a></li>
+              <li><a href="/solutions" className="hover:text-brand-300 transition-colors duration-200">解决方案</a></li>
             </ul>
           </div>
 
           {/* 联系方式 */}
           <div>
-            <h3 className="text-white font-semibold mb-4">联系我们</h3>
-            <ul className="space-y-2 text-sm">
-              <li>邮箱：contact@wulian-tech.com</li>
-              <li>地址：上海市浦东新区张江高科</li>
+            <h3 className="text-white font-semibold mb-5 text-sm uppercase tracking-wider">联系我们</h3>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-center space-x-2">
+                <Mail size={14} className="text-brand-400 shrink-0" />
+                <span>contact@wulian-tech.com</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <MapPin size={14} className="text-brand-400 shrink-0" />
+                <span>上海市浦东新区张江高科</span>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
+        <div className="border-t border-surface-800 mt-10 pt-8 text-center text-xs text-surface-500">
           <p>© 2024 物联智造科技有限公司 版权所有</p>
         </div>
       </div>

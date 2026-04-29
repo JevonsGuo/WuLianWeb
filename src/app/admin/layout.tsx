@@ -23,12 +23,10 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Skip auth check on login page
     if (pathname === '/admin/login') {
       setLoading(false);
       return;
     }
-    // Check auth
     fetch('/api/admin/check')
       .then((res) => {
         if (res.ok) {
@@ -47,8 +45,8 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-surface-50">
+        <div className="animate-spin w-8 h-8 border-[3px] border-brand-500 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -60,23 +58,25 @@ export default function AdminLayout({
   if (!authenticated) return null;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-surface-50">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-60 bg-white border-r border-surface-200/60 transform transition-transform md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-100">
-          <div className="flex items-center space-x-2">
-            <LayoutDashboard size={20} className="text-blue-600" />
-            <span className="font-bold text-gray-900">管理后台</span>
+        <div className="flex items-center justify-between h-16 px-5 border-b border-surface-100">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center shadow-sm">
+              <LayoutDashboard size={16} className="text-white" />
+            </div>
+            <span className="font-bold text-surface-900 text-sm">管理后台</span>
           </div>
-          <button className="md:hidden" onClick={() => setSidebarOpen(false)}>
-            <X size={20} />
+          <button className="md:hidden p-1 hover:bg-surface-100 rounded-lg" onClick={() => setSidebarOpen(false)}>
+            <X size={18} />
           </button>
         </div>
-        <nav className="py-4">
+        <nav className="py-3 px-2.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
@@ -84,23 +84,23 @@ export default function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center space-x-3 px-6 py-3 text-sm font-medium transition-colors ${
+                className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 mb-0.5 ${
                   active
-                    ? 'text-blue-700 bg-blue-50 border-r-2 border-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'text-brand-700 bg-brand-50'
+                    : 'text-surface-600 hover:bg-surface-50 hover:text-surface-800'
                 }`}
                 onClick={() => setSidebarOpen(false)}
               >
-                <Icon size={18} />
+                <Icon size={18} className={active ? 'text-brand-500' : ''} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-surface-100">
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 text-sm text-gray-500 hover:text-red-600 transition-colors w-full px-2 py-2"
+            className="flex items-center space-x-2.5 text-sm text-surface-500 hover:text-red-600 transition-colors w-full px-3 py-2.5 rounded-xl hover:bg-red-50"
           >
             <LogOut size={16} />
             <span>退出登录</span>
@@ -109,17 +109,17 @@ export default function AdminLayout({
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 md:ml-64">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-6">
+      <div className="flex-1 md:ml-60">
+        <header className="h-14 bg-white border-b border-surface-200/60 flex items-center px-6">
           <button
-            className="md:hidden mr-4"
+            className="md:hidden mr-3 p-1 hover:bg-surface-100 rounded-lg"
             onClick={() => setSidebarOpen(true)}
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
           <Link
             href="/"
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
             target="_blank"
           >
             查看前台网站 →
