@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '无效的 bucket' }, { status: 400 });
     }
 
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\u4e00-\u9fa5-]/g, '_')}`;
+    // Supabase Storage keys only support ASCII, so replace all non-ASCII chars (including Chinese)
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${Date.now()}-${safeName}`;
 
     const { data, error } = await supabaseAdmin.storage
       .from(bucket)
