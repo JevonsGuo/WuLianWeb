@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { Product, ProductCategory } from '@/lib/types';
-import { Plus, Pencil, Trash2, Upload, AlertCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, AlertCircle, X } from 'lucide-react';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -23,8 +22,8 @@ export default function ProductsPage() {
 
   const fetchData = useCallback(async () => {
     const [productsRes, categoriesRes] = await Promise.all([
-      supabase.from('products').select('*').order('sort_order'),
-      supabase.from('product_categories').select('*').order('sort_order'),
+      fetch('/api/admin/products').then((r) => r.json()),
+      fetch('/api/admin/categories').then((r) => r.json()),
     ]);
     setProducts(productsRes.data || []);
     setCategories(categoriesRes.data || []);
@@ -48,7 +47,7 @@ export default function ProductsPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.url) {
+      if (res.ok && data.url) {
         setForm((f) => ({ ...f, image_urls: [...f.image_urls, data.url] }));
       } else {
         setUploadError(data.error || '上传失败，请先在 Supabase Storage 中创建 product-images bucket（设为 Public）');
@@ -81,7 +80,7 @@ export default function ProductsPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.url) {
+      if (res.ok && data.url) {
         setForm((f) => ({ ...f, [field]: data.url }));
       } else {
         setUploadError(data.error || `上传失败，请先创建 ${bucket} bucket`);
@@ -94,18 +93,36 @@ export default function ProductsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const payload = { ...form };
-    if (editing) {
-      await supabase.from('products').update(payload).eq('id', editing.id);
-    } else {
-      await supabase.from('products').insert(payload);
+    try {
+      const payload = { ...form };
+      let res: Response;
+      if (editing) {
+        res = await fetch('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editing.id, ...payload }),
+        });
+      } else {
+        res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || '保存失败');
+      } else {
+        setShowForm(false);
+        setEditing(null);
+        setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], manual_url: '', certificate_url: '', sort_order: 0 });
+        setImageUrlInput('');
+        fetchData();
+      }
+    } catch {
+      alert('网络错误，保存失败');
     }
     setSaving(false);
-    setShowForm(false);
-    setEditing(null);
-    setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], manual_url: '', certificate_url: '', sort_order: 0 });
-    setImageUrlInput('');
-    fetchData();
   };
 
   const handleEdit = (p: Product) => {
@@ -123,7 +140,15 @@ export default function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定删除该产品？')) return;
-    await supabase.from('products').delete().eq('id', id);
+    const res = await fetch('/api/admin/products', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || '删除失败');
+    }
     fetchData();
   };
 
@@ -198,7 +223,6 @@ export default function ProductsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   产品图片 <span className="text-gray-400 font-normal">（支持多张）</span>
                 </label>
-                {/* 已添加的图片列表 */}
                 {form.image_urls.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {form.image_urls.map((url, idx) => (
@@ -216,7 +240,6 @@ export default function ProductsPage() {
                     ))}
                   </div>
                 )}
-                {/* 添加方式：URL 输入 + 上传 */}
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <input

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { Solution } from '@/lib/types';
 import { Plus, Pencil, Trash2, Upload, AlertCircle } from 'lucide-react';
 
@@ -27,8 +26,8 @@ export default function SolutionsPage() {
 
   const fetchData = useCallback(async () => {
     const [solutionsRes, productsRes] = await Promise.all([
-      supabase.from('solutions').select('*').order('sort_order'),
-      supabase.from('products').select('id, name, model').order('sort_order'),
+      fetch('/api/admin/solutions').then((r) => r.json()),
+      fetch('/api/admin/products').then((r) => r.json()),
     ]);
     setSolutions(solutionsRes.data || []);
     setProducts(productsRes.data || []);
@@ -48,7 +47,7 @@ export default function SolutionsPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.url) setForm((f) => ({ ...f, image_url: data.url }));
+      if (res.ok && data.url) setForm((f) => ({ ...f, image_url: data.url }));
       else setUploadError(data.error || '上传失败，请先在 Supabase Storage 中创建 solution-images bucket（设为 Public）');
     } catch {
       setUploadError('网络错误，上传失败');
@@ -58,23 +57,41 @@ export default function SolutionsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const payload = {
-      industry_name: form.industry_name,
-      image_url: form.image_url,
-      description: form.description,
-      related_product_ids: JSON.stringify(form.related_product_ids),
-      sort_order: form.sort_order,
-    };
-    if (editing) {
-      await supabase.from('solutions').update(payload).eq('id', editing.id);
-    } else {
-      await supabase.from('solutions').insert(payload);
+    try {
+      const payload = {
+        industry_name: form.industry_name,
+        image_url: form.image_url,
+        description: form.description,
+        related_product_ids: JSON.stringify(form.related_product_ids),
+        sort_order: form.sort_order,
+      };
+      let res: Response;
+      if (editing) {
+        res = await fetch('/api/admin/solutions', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editing.id, ...payload }),
+        });
+      } else {
+        res = await fetch('/api/admin/solutions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || '保存失败');
+      } else {
+        setShowForm(false);
+        setEditing(null);
+        setForm({ industry_name: '', image_url: '', description: '', related_product_ids: [], sort_order: 0 });
+        fetchData();
+      }
+    } catch {
+      alert('网络错误，保存失败');
     }
     setSaving(false);
-    setShowForm(false);
-    setEditing(null);
-    setForm({ industry_name: '', image_url: '', description: '', related_product_ids: [], sort_order: 0 });
-    fetchData();
   };
 
   const handleEdit = (sol: Solution) => {
@@ -91,7 +108,15 @@ export default function SolutionsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定删除该解决方案？')) return;
-    await supabase.from('solutions').delete().eq('id', id);
+    const res = await fetch('/api/admin/solutions', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || '删除失败');
+    }
     fetchData();
   };
 

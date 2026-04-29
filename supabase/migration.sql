@@ -1,7 +1,7 @@
 -- =============================================
 -- 物联网设备公司产品展示网站 - 数据库迁移脚本
 -- 在 Supabase SQL Editor 中执行（可重复执行）
--- 不启用 RLS，清空历史数据后重建
+-- 启用 RLS：匿名用户只读，写操作通过 service_role key 在 API 路由中完成
 -- =============================================
 
 -- 1. 删除旧表（清除所有历史数据）
@@ -45,12 +45,25 @@ CREATE TABLE solutions (
   created_at timestamptz DEFAULT now()
 );
 
--- 5. 不启用 RLS（已默认关闭，显式禁用以确保）
-ALTER TABLE product_categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE products DISABLE ROW LEVEL SECURITY;
-ALTER TABLE solutions DISABLE ROW LEVEL SECURITY;
+-- 5. 启用 RLS（Row Level Security）
+ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE solutions ENABLE ROW LEVEL SECURITY;
 
--- 6. 更新时间触发器
+-- 6. RLS 策略：匿名用户（anon key）只能读取数据
+CREATE POLICY "Public read product_categories" ON product_categories
+  FOR SELECT USING (true);
+
+CREATE POLICY "Public read products" ON products
+  FOR SELECT USING (true);
+
+CREATE POLICY "Public read solutions" ON solutions
+  FOR SELECT USING (true);
+
+-- 注意：写操作（INSERT/UPDATE/DELETE）不开放给 anon 用户，
+-- 只能通过 service_role key 在服务端 API 路由中执行（service_role 绕过 RLS）。
+
+-- 7. 更新时间触发器
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

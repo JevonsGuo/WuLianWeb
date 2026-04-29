@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { ProductCategory } from '@/lib/types';
 import { Plus, Pencil, Trash2, Upload, AlertCircle } from 'lucide-react';
 
@@ -16,11 +15,9 @@ export default function CategoriesPage() {
   const [uploadError, setUploadError] = useState('');
 
   const fetchCategories = useCallback(async () => {
-    const { data } = await supabase
-      .from('product_categories')
-      .select('*')
-      .order('sort_order');
-    setCategories(data || []);
+    const res = await fetch('/api/admin/categories');
+    const json = await res.json();
+    setCategories(json.data || []);
     setLoading(false);
   }, []);
 
@@ -39,7 +36,7 @@ export default function CategoriesPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.url) {
+      if (res.ok && data.url) {
         setForm((f) => ({ ...f, image_url: data.url }));
       } else {
         setUploadError(data.error || '上传失败，请先在 Supabase Storage 中创建 product-images bucket（设为 Public）');
@@ -52,21 +49,35 @@ export default function CategoriesPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    if (editing) {
-      await supabase
-        .from('product_categories')
-        .update({ name: form.name, image_url: form.image_url, sort_order: form.sort_order })
-        .eq('id', editing.id);
-    } else {
-      await supabase
-        .from('product_categories')
-        .insert({ name: form.name, image_url: form.image_url, sort_order: form.sort_order });
+    try {
+      const payload = { name: form.name, image_url: form.image_url, sort_order: form.sort_order };
+      let res: Response;
+      if (editing) {
+        res = await fetch('/api/admin/categories', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editing.id, ...payload }),
+        });
+      } else {
+        res = await fetch('/api/admin/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || '保存失败');
+      } else {
+        setShowForm(false);
+        setEditing(null);
+        setForm({ name: '', image_url: '', sort_order: 0 });
+        fetchCategories();
+      }
+    } catch {
+      alert('网络错误，保存失败');
     }
     setSaving(false);
-    setShowForm(false);
-    setEditing(null);
-    setForm({ name: '', image_url: '', sort_order: 0 });
-    fetchCategories();
   };
 
   const handleEdit = (cat: ProductCategory) => {
@@ -78,7 +89,15 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('删除大类将同时删除其下所有产品，确定删除？')) return;
-    await supabase.from('product_categories').delete().eq('id', id);
+    const res = await fetch('/api/admin/categories', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || '删除失败');
+    }
     fetchCategories();
   };
 

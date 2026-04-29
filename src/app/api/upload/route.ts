@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAuthenticated } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(request: NextRequest) {
+  if (!isAuthenticated(request)) {
+    return NextResponse.json({ error: '未授权' }, { status: 401 });
+  }
+
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -16,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '无效的 bucket' }, { status: 400 });
     }
 
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\u4e00-\u9fa5-]/g, '_')}`;
 
     const { data, error } = await supabaseAdmin.storage
       .from(bucket)
