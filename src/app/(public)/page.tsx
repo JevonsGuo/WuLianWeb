@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 
+// Revalidate every 30 seconds so admin changes appear on the homepage
+export const revalidate = 30;
+
 async function getHomeData() {
   const [categoriesRes, solutionsRes] = await Promise.all([
     supabase

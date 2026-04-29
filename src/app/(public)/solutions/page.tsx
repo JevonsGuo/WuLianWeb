@@ -1,6 +1,9 @@
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 
+// Revalidate every 30 seconds so admin changes appear on the solutions page
+export const revalidate = 30;
+
 async function getSolutions() {
   const [solutionsRes, productsRes] = await Promise.all([
     supabase.from('solutions').select('*').order('sort_order'),
