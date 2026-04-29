@@ -1,8 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Product, ProductCategory } from '@/lib/types';
-import { Plus, Pencil, Trash2, Upload, AlertCircle, X } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
+import { Plus, Pencil, Trash2, Upload, AlertCircle, X, FileText, Award, Paperclip } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false });
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -13,8 +17,11 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({
     name: '', model: '', description: '', category_id: '',
-    image_urls: [] as string[], manual_url: '', certificate_url: '', sort_order: 0,
+    image_urls: [] as string[], main_image_url: '',
+    summary_content: '', specifications_content: '',
+    manual_url: '', certificate_url: '', sort_order: 0,
   });
+  const [attachments, setAttachments] = useState<ProductAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -22,8 +29,8 @@ export default function ProductsPage() {
 
   const fetchData = useCallback(async () => {
     const [productsRes, categoriesRes] = await Promise.all([
-      fetch('/api/admin/products').then((r) => r.json()),
-      fetch('/api/admin/categories').then((r) => r.json()),
+      supabase.from('products').select('*').order('sort_order'),
+      supabase.from('product_categories').select('*').order('sort_order'),
     ]);
     setProducts(productsRes.data || []);
     setCategories(categoriesRes.data || []);
@@ -47,13 +54,13 @@ export default function ProductsPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (res.ok && data.url) {
+      if (data.url) {
         setForm((f) => ({ ...f, image_urls: [...f.image_urls, data.url] }));
       } else {
-        setUploadError(data.error || '上传失败，请先在 Supabase Storage 中创建 product-images bucket（设为 Public）');
+        setUploadError(data.error || '上传失败');
       }
     } catch {
-      setUploadError('网络错误，上传失败');
+      setUploadError('网络错误');
     }
     setUploading(false);
   };
@@ -80,75 +87,116 @@ export default function ProductsPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
-      if (res.ok && data.url) {
+      if (data.url) {
         setForm((f) => ({ ...f, [field]: data.url }));
       } else {
-        setUploadError(data.error || `上传失败，请先创建 ${bucket} bucket`);
+        setUploadError(data.error || '上传失败');
       }
     } catch {
-      setUploadError('网络错误，上传失败');
+      setUploadError('网络错误');
     }
     setUploading(false);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const payload = { ...form };
-      let res: Response;
-      if (editing) {
-        res = await fetch('/api/admin/products', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editing.id, ...payload }),
-        });
-      } else {
-        res = await fetch('/api/admin/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-      }
-      if (!res.ok) {
+  // Attachment upload
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setUploadError('');
+    for (const file of Array.from(files)) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'product-attachments');
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
         const data = await res.json();
-        alert(data.error || '保存失败');
-      } else {
-        setShowForm(false);
-        setEditing(null);
-        setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], manual_url: '', certificate_url: '', sort_order: 0 });
-        setImageUrlInput('');
-        fetchData();
+        if (data.url) {
+          // Determine file type from name
+          let fileType = 'other';
+          const nameLower = file.name.toLowerCase();
+          if (nameLower.includes('证书') || nameLower.includes('cert')) fileType = 'certificate';
+          else if (nameLower.includes('手册') || nameLower.includes('manual')) fileType = 'manual';
+
+          // Save to DB
+          await supabase.from('product_attachments').insert({
+            product_id: editing?.id || 'pending',
+            file_name: file.name,
+            file_url: data.url,
+            file_type: fileType,
+            file_size: file.size,
+          });
+        }
+      } catch {
+        setUploadError('附件上传失败');
       }
-    } catch {
-      alert('网络错误，保存失败');
     }
-    setSaving(false);
+    // Refresh attachments
+    if (editing?.id) {
+      const { data } = await supabase.from('product_attachments').select('*').eq('product_id', editing.id).order('sort_order');
+      setAttachments(data || []);
+    }
+    setUploading(false);
   };
 
-  const handleEdit = (p: Product) => {
+  const handleDeleteAttachment = async (attId: string) => {
+    if (!confirm('确定删除该附件？')) return;
+    await supabase.from('product_attachments').delete().eq('id', attId);
+    setAttachments((prev) => prev.filter((a) => a.id !== attId));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const payload = {
+      name: form.name, model: form.model, description: form.description,
+      category_id: form.category_id, image_urls: form.image_urls,
+      main_image_url: form.main_image_url,
+      summary_content: form.summary_content,
+      specifications_content: form.specifications_content,
+      manual_url: form.manual_url, certificate_url: form.certificate_url,
+      sort_order: form.sort_order,
+    };
+    if (editing) {
+      await supabase.from('products').update(payload).eq('id', editing.id);
+    } else {
+      const { data } = await supabase.from('products').insert(payload).select();
+      // Move pending attachments to the new product
+      if (data && data[0]) {
+        await supabase.from('product_attachments').update({ product_id: data[0].id }).eq('product_id', 'pending');
+      }
+    }
+    setSaving(false);
+    setShowForm(false);
+    setEditing(null);
+    setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], main_image_url: '', summary_content: '', specifications_content: '', manual_url: '', certificate_url: '', sort_order: 0 });
+    setImageUrlInput('');
+    setAttachments([]);
+    fetchData();
+  };
+
+  const handleEdit = async (p: Product) => {
     setEditing(p);
     setForm({
       name: p.name, model: p.model, description: p.description || '',
       category_id: p.category_id, image_urls: p.image_urls || [],
+      main_image_url: p.main_image_url || '',
+      summary_content: p.summary_content || '',
+      specifications_content: p.specifications_content || '',
       manual_url: p.manual_url || '', certificate_url: p.certificate_url || '',
       sort_order: p.sort_order,
     });
     setUploadError('');
     setImageUrlInput('');
+    // Fetch attachments
+    const { data } = await supabase.from('product_attachments').select('*').eq('product_id', p.id).order('sort_order');
+    setAttachments(data || []);
     setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定删除该产品？')) return;
-    const res = await fetch('/api/admin/products', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    if (!res.ok) {
-      const data = await res.json();
-      alert(data.error || '删除失败');
-    }
+    await supabase.from('product_attachments').delete().eq('product_id', id);
+    await supabase.from('products').delete().eq('id', id);
     fetchData();
   };
 
@@ -161,9 +209,10 @@ export default function ProductsPage() {
         <button
           onClick={() => {
             setEditing(null);
-            setForm({ name: '', model: '', description: '', category_id: categories[0]?.id || '', image_urls: [], manual_url: '', certificate_url: '', sort_order: 0 });
+            setForm({ name: '', model: '', description: '', category_id: categories[0]?.id || '', image_urls: [], main_image_url: '', summary_content: '', specifications_content: '', manual_url: '', certificate_url: '', sort_order: 0 });
             setUploadError('');
             setImageUrlInput('');
+            setAttachments([]);
             setShowForm(true);
           }}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
@@ -174,22 +223,17 @@ export default function ProductsPage() {
 
       {/* Filter */}
       <div className="mb-4">
-        <select
-          value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-        >
+        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
           <option value="all">所有大类</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 pt-8 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-3xl mb-8">
             <h2 className="text-lg font-bold mb-4">{editing ? '编辑产品' : '新增产品'}</h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -213,85 +257,136 @@ export default function ProductsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">产品介绍</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">产品简介</label>
                 <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  rows={3} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                  rows={2} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
-              {/* 多图上传 */}
+              {/* 产品图片（多图） */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  产品图片 <span className="text-gray-400 font-normal">（支持多张）</span>
+                  产品图片 <span className="text-gray-400 font-normal">（多张）</span>
                 </label>
                 {form.image_urls.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {form.image_urls.map((url, idx) => (
                       <div key={idx} className="relative group">
                         <img src={url} alt={`图片 ${idx + 1}`} className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(idx)}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
+                        <button type="button" onClick={() => handleRemoveImage(idx)}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <X size={12} />
                         </button>
-                        <span className="absolute bottom-0.5 left-0.5 text-[10px] bg-black/50 text-white px-1 rounded">{idx + 1}</span>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl(); } }}
-                      placeholder="输入图片 URL 后回车添加"
-                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddImageUrl}
-                      disabled={!imageUrlInput.trim()}
-                      className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 shrink-0"
-                    >
-                      添加
-                    </button>
-                  </div>
-                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm w-fit">
-                    <Upload size={14} />
-                    <span>{uploading ? '上传中...' : '上传图片文件'}</span>
+                <div className="flex items-center space-x-2">
+                  <input type="text" value={imageUrlInput} onChange={(e) => setImageUrlInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddImageUrl(); } }}
+                    placeholder="输入图片 URL 回车添加" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                  <button type="button" onClick={handleAddImageUrl} disabled={!imageUrlInput.trim()}
+                    className="px-3 py-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200 disabled:opacity-50 shrink-0">添加</button>
+                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
+                    <Upload size={14} /><span>{uploading ? '上传中...' : '上传'}</span>
                     <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
                   </label>
                 </div>
-                {uploadError && (
-                  <div className="flex items-start space-x-1 mt-2 text-red-600 text-xs">
-                    <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                    <span>{uploadError}</span>
-                  </div>
+              </div>
+
+              {/* 详情主图 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">详情页主图</label>
+                <div className="flex items-center space-x-2">
+                  <input type="text" value={form.main_image_url} onChange={(e) => setForm((f) => ({ ...f, main_image_url: e.target.value }))}
+                    placeholder="输入 URL 或上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
+                    <Upload size={14} /><span>上传</span>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'main_image_url', 'product-images')} className="hidden" />
+                  </label>
+                </div>
+                {form.main_image_url && (
+                  <img src={form.main_image_url} alt="主图预览" className="mt-2 w-24 h-24 rounded-lg object-cover border border-gray-200" />
                 )}
               </div>
 
+              {/* 产品概要 - 富文本 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">产品概要</label>
+                <RichTextEditor
+                  value={form.summary_content}
+                  onChange={(val: string) => setForm((f) => ({ ...f, summary_content: val }))}
+                  placeholder="输入产品概要介绍..."
+                />
+              </div>
+
+              {/* 主要参数 - 富文本 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">主要参数</label>
+                <RichTextEditor
+                  value={form.specifications_content}
+                  onChange={(val: string) => setForm((f) => ({ ...f, specifications_content: val }))}
+                  placeholder="输入产品技术参数..."
+                />
+              </div>
+
               {/* 产品手册 & 证书 */}
-              {(['manual_url', 'certificate_url'] as const).map((field) => {
-                const labels = { manual_url: '产品手册', certificate_url: '证书文件' };
-                const buckets = { manual_url: 'documents', certificate_url: 'documents' };
-                return (
-                  <div key={field}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{labels[field]}</label>
-                    <div className="flex items-center space-x-2">
-                      <input type="text" value={form[field]} onChange={(e) => { setForm((f) => ({ ...f, [field]: e.target.value })); setUploadError(''); }}
-                        placeholder="输入 URL 或点击上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                      <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
-                        <Upload size={14} />
-                        <span>{uploading ? '上传中...' : '上传'}</span>
-                        <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="hidden" />
-                      </label>
+              <div className="grid grid-cols-2 gap-4">
+                {(['manual_url', 'certificate_url'] as const).map((field) => {
+                  const labels = { manual_url: '产品手册', certificate_url: '证书文件' };
+                  const buckets = { manual_url: 'documents', certificate_url: 'documents' };
+                  return (
+                    <div key={field}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{labels[field]}</label>
+                      <div className="flex items-center space-x-2">
+                        <input type="text" value={form[field]} onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                          placeholder="URL 或上传" className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                        <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm shrink-0">
+                          <Upload size={14} />
+                          <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="hidden" />
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* 附件管理 */}
+              {editing && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">证书与附件</label>
+                  {attachments.length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {attachments.map((att) => (
+                        <div key={att.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-2 min-w-0">
+                            {att.file_type === 'certificate' ? <Award size={14} className="text-green-500" /> :
+                             att.file_type === 'manual' ? <FileText size={14} className="text-blue-500" /> :
+                             <Paperclip size={14} className="text-gray-500" />}
+                            <span className="text-sm truncate">{att.file_name}</span>
+                            <span className="text-xs text-gray-400 px-1 py-0.5 bg-gray-200 rounded">
+                              {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '附件'}
+                            </span>
+                          </div>
+                          <button onClick={() => handleDeleteAttachment(att.id)} className="p-1 text-gray-400 hover:text-red-600 shrink-0">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label className="flex items-center space-x-1 px-3 py-2 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 text-sm w-fit">
+                    <Upload size={14} /><span>{uploading ? '上传中...' : '添加附件'}</span>
+                    <input type="file" multiple accept=".pdf,.zip,.rar,.jpg,.png" onChange={handleAttachmentUpload} className="hidden" />
+                  </label>
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="flex items-start space-x-1 text-red-600 text-xs">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">排序</label>
                 <input type="number" value={form.sort_order} onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))}
@@ -299,7 +394,8 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="flex justify-end space-x-3 mt-6">
-              <button onClick={() => { setShowForm(false); setEditing(null); setUploadError(''); }} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">取消</button>
+              <button onClick={() => { setShowForm(false); setEditing(null); setUploadError(''); setAttachments([]); }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">取消</button>
               <button onClick={handleSave} disabled={saving || !form.name || !form.model || !form.category_id}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
                 {saving ? '保存中...' : '保存'}
@@ -333,7 +429,7 @@ export default function ProductsPage() {
                   <tr key={p.id} className="hover:bg-gray-50">
                     <td className="px-6 py-3">
                       {p.image_urls && p.image_urls.length > 0 ? (
-                        <div className="relative group">
+                        <div className="relative">
                           <img src={p.image_urls[0]} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
                           {p.image_urls.length > 1 && (
                             <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-blue-500 text-white text-[10px] rounded-full flex items-center justify-center">

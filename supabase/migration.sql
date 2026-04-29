@@ -1,10 +1,11 @@
 -- =============================================
 -- 物联网设备公司产品展示网站 - 数据库迁移脚本
 -- 在 Supabase SQL Editor 中执行（可重复执行）
--- 启用 RLS：匿名用户只读，写操作通过 service_role key 在 API 路由中完成
+-- 不启用 RLS，清空历史数据后重建
 -- =============================================
 
 -- 1. 删除旧表（清除所有历史数据）
+DROP TABLE IF EXISTS product_attachments CASCADE;
 DROP TABLE IF EXISTS solutions CASCADE;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS product_categories CASCADE;
@@ -19,7 +20,7 @@ CREATE TABLE product_categories (
   updated_at timestamptz DEFAULT now()
 );
 
--- 3. 创建产品表（image_urls 为多图数组）
+-- 3. 创建产品表
 CREATE TABLE products (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   category_id uuid NOT NULL REFERENCES product_categories(id) ON DELETE CASCADE,
@@ -27,6 +28,9 @@ CREATE TABLE products (
   model text NOT NULL,
   description text,
   image_urls text[] DEFAULT '{}',
+  main_image_url text,
+  summary_content text,
+  specifications_content text,
   manual_url text,
   certificate_url text,
   sort_order integer DEFAULT 0,
@@ -45,23 +49,23 @@ CREATE TABLE solutions (
   created_at timestamptz DEFAULT now()
 );
 
--- 5. 启用 RLS（Row Level Security）
-ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE solutions ENABLE ROW LEVEL SECURITY;
+-- 5. 创建产品附件表
+CREATE TABLE product_attachments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  file_name text NOT NULL,
+  file_url text NOT NULL,
+  file_type text NOT NULL DEFAULT 'other',
+  file_size integer,
+  sort_order integer DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
 
--- 6. RLS 策略：匿名用户（anon key）只能读取数据
-CREATE POLICY "Public read product_categories" ON product_categories
-  FOR SELECT USING (true);
-
-CREATE POLICY "Public read products" ON products
-  FOR SELECT USING (true);
-
-CREATE POLICY "Public read solutions" ON solutions
-  FOR SELECT USING (true);
-
--- 注意：写操作（INSERT/UPDATE/DELETE）不开放给 anon 用户，
--- 只能通过 service_role key 在服务端 API 路由中执行（service_role 绕过 RLS）。
+-- 6. 不启用 RLS
+ALTER TABLE product_categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE solutions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE product_attachments DISABLE ROW LEVEL SECURITY;
 
 -- 7. 更新时间触发器
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -93,71 +97,107 @@ INSERT INTO product_categories (id, name, image_url, sort_order) VALUES
   ('a1b2c3d4-0001-4000-8000-000000000002', '工业机器人', 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&h=300&fit=crop', 2),
   ('a1b2c3d4-0001-4000-8000-000000000003', '视觉检测系统', 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop', 3);
 
--- 智能传感器下的产品（每个产品含多张图片）
-INSERT INTO products (id, category_id, name, model, description, image_urls, manual_url, certificate_url, sort_order) VALUES
+-- 智能传感器下的产品
+INSERT INTO products (id, category_id, name, model, description, image_urls, main_image_url, summary_content, specifications_content, sort_order) VALUES
   ('b1b2c3d4-0001-4000-8000-000000000001', 'a1b2c3d4-0001-4000-8000-000000000001',
    '高精度激光测距传感器', 'LS-1000',
-   '测量范围 0.1-50m，精度 ±1mm，适用于工业自动化距离测量与定位场景。支持 RS485/Modbus 通信协议，响应时间 <5ms。',
+   '测量范围 0.1-50m，精度 ±1mm',
    ARRAY[
      'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop'
-   ], '', '', 1),
+   ],
+   'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop',
+   '<h3>产品概述</h3><p>LS-1000 是一款高精度激光测距传感器，适用于工业自动化距离测量与定位场景。采用相位式激光测距技术，具备高精度、远量程、快速响应等特点。</p><h3>核心优势</h3><ul><li>高精度：±1mm 测量精度</li><li>远量程：0.1-50m 测量范围</li><li>快速响应：<5ms 响应时间</li><li>多协议：支持 RS485/Modbus</li></ul>',
+   '<table border="1" cellpadding="6"><tr><th>参数</th><th>规格</th></tr><tr><td>测量范围</td><td>0.1 - 50m</td></tr><tr><td>测量精度</td><td>±1mm</td></tr><tr><td>响应时间</td><td>&lt;5ms</td></tr><tr><td>通信协议</td><td>RS485/Modbus</td></tr><tr><td>工作电压</td><td>12-24V DC</td></tr><tr><td>防护等级</td><td>IP65</td></tr><tr><td>工作温度</td><td>-20°C ~ +60°C</td></tr></table>',
+   1),
 
   ('b1b2c3d4-0001-4000-8000-000000000002', 'a1b2c3d4-0001-4000-8000-000000000001',
    '工业级温度传感器', 'TS-2000',
-   '测温范围 -40°C 到 125°C，IP67 防护等级，4-20mA 模拟输出。适用于恶劣工业环境下的温度监测。',
+   '测温范围 -40°C 到 125°C',
    ARRAY[
      'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop'
-   ], '', '', 2),
+   ],
+   'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop',
+   '<h3>产品概述</h3><p>TS-2000 工业级温度传感器，适用于恶劣工业环境下的温度监测。IP67 防护等级，4-20mA 模拟输出，安装便捷。</p><h3>核心优势</h3><ul><li>宽温区：-40°C 到 125°C</li><li>高防护：IP67 防护等级</li><li>标准输出：4-20mA 模拟信号</li></ul>',
+   '<table border="1" cellpadding="6"><tr><th>参数</th><th>规格</th></tr><tr><td>测温范围</td><td>-40°C ~ +125°C</td></tr><tr><td>精度</td><td>±0.5°C</td></tr><tr><td>输出信号</td><td>4-20mA</td></tr><tr><td>防护等级</td><td>IP67</td></tr><tr><td>供电电压</td><td>12-36V DC</td></tr></table>',
+   2),
 
   ('b1b2c3d4-0001-4000-8000-000000000003', 'a1b2c3d4-0001-4000-8000-000000000001',
    '多轴加速度传感器', 'AS-3000',
-   '6 轴加速度 + 陀螺仪，高精度 IMU 模块，适用于振动监测与姿态检测。支持 SPI/I2C 接口。',
+   '6 轴加速度 + 陀螺仪',
    ARRAY[
      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1581091226825-a6a2a83a863c?w=600&h=600&fit=crop'
-   ], '', '', 3);
+   ],
+   'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop',
+   '<h3>产品概述</h3><p>AS-3000 是一款 6 轴高精度 IMU 模块，集成三轴加速度计和三轴陀螺仪，适用于振动监测与姿态检测场景。</p>',
+   '<table border="1" cellpadding="6"><tr><th>参数</th><th>规格</th></tr><tr><td>加速度量程</td><td>±16g</td></tr><tr><td>陀螺仪量程</td><td>±2000°/s</td></tr><tr><td>接口</td><td>SPI/I2C</td></tr><tr><td>采样率</td><td>高达 8kHz</td></tr></table>',
+   3);
 
 -- 工业机器人下的产品
-INSERT INTO products (id, category_id, name, model, description, image_urls, manual_url, certificate_url, sort_order) VALUES
+INSERT INTO products (id, category_id, name, model, description, image_urls, main_image_url, summary_content, specifications_content, sort_order) VALUES
   ('b1b2c3d4-0001-4000-8000-000000000004', 'a1b2c3d4-0001-4000-8000-000000000002',
    '六轴协作机器人', 'CR-600',
-   '负载 6kg，臂展 900mm，重复定位精度 ±0.02mm。支持拖拽示教与图形化编程，适用于柔性产线。',
+   '负载 6kg，臂展 900mm',
    ARRAY[
      'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1561557944-6e7876e5c7cf?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&h=600&fit=crop'
-   ], '', '', 1),
+   ],
+   'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=600&fit=crop',
+   '<h3>产品概述</h3><p>CR-600 六轴协作机器人，重复定位精度 ±0.02mm，支持拖拽示教与图形化编程，适用于柔性产线。</p><h3>核心优势</h3><ul><li>高精度：±0.02mm 重复定位</li><li>易用性：拖拽示教 + 图形编程</li><li>安全性：力矩传感器碰撞检测</li></ul>',
+   '<table border="1" cellpadding="6"><tr><th>参数</th><th>规格</th></tr><tr><td>负载</td><td>6kg</td></tr><tr><td>臂展</td><td>900mm</td></tr><tr><td>重复定位精度</td><td>±0.02mm</td></tr><tr><td>轴数</td><td>6</td></tr><tr><td>防护等级</td><td>IP54</td></tr></table>',
+   1),
 
   ('b1b2c3d4-0001-4000-8000-000000000005', 'a1b2c3d4-0001-4000-8000-000000000002',
    'SCARA 高速分拣机器人', 'SR-400',
-   '负载 3kg，循环时间 0.4s，适用于电子元器件高速分拣与装配。支持视觉引导。',
+   '负载 3kg，循环时间 0.4s',
    ARRAY[
      'https://images.unsplash.com/photo-1561557944-6e7876e5c7cf?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&h=600&fit=crop'
-   ], '', '', 2);
+   ],
+   'https://images.unsplash.com/photo-1561557944-6e7876e5c7cf?w=600&h=600&fit=crop',
+   '<h3>产品概述</h3><p>SR-400 SCARA 高速分拣机器人，循环时间 0.4s，适用于电子元器件高速分拣与装配，支持视觉引导。</p>',
+   '<table border="1" cellpadding="6"><tr><th>参数</th><th>规格</th></tr><tr><td>负载</td><td>3kg</td></tr><tr><td>循环时间</td><td>0.4s</td></tr><tr><td>重复定位精度</td><td>±0.01mm</td></tr><tr><td>视觉引导</td><td>支持</td></tr></table>',
+   2);
 
 -- 视觉检测系统下的产品
-INSERT INTO products (id, category_id, name, model, description, image_urls, manual_url, certificate_url, sort_order) VALUES
+INSERT INTO products (id, category_id, name, model, description, image_urls, main_image_url, summary_content, specifications_content, sort_order) VALUES
   ('b1b2c3d4-0001-4000-8000-000000000006', 'a1b2c3d4-0001-4000-8000-000000000003',
    '工业 3D 视觉检测系统', 'VS-8000',
-   '千万级像素 3D 相机，检测精度 0.01mm，集成深度学习算法。适用于表面缺陷检测与尺寸测量。',
+   '千万级像素 3D 相机',
    ARRAY[
      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1586953208270-767889fa9b0e?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&h=600&fit=crop'
-   ], '', '', 1),
+   ],
+   'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=600&fit=crop',
+   '<h3>产品概述</h3><p>VS-8000 工业 3D 视觉检测系统，千万级像素 3D 相机，集成深度学习算法，适用于表面缺陷检测与尺寸测量。</p>',
+   '<table border="1" cellpadding="6"><tr><th>参数</th><th>规格</th></tr><tr><td>分辨率</td><td>1200万像素</td></tr><tr><td>检测精度</td><td>0.01mm</td></tr><tr><td>算法</td><td>深度学习</td></tr><tr><td>接口</td><td>GigE Vision</td></tr></table>',
+   1),
 
   ('b1b2c3d4-0001-4000-8000-000000000007', 'a1b2c3d4-0001-4000-8000-000000000003',
    '智能 barcode/QR 读码器', 'BC-500',
-   '高速一维/二维条码读取，读取速度 >60 次/秒，IP65 防护。适用于产线追溯与物流分拣。',
+   '高速一维/二维条码读取',
    ARRAY[
      'https://images.unsplash.com/photo-1586953208270-767889fa9b0e?w=600&h=600&fit=crop',
      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&h=600&fit=crop'
-   ], '', '', 2);
+   ],
+   'https://images.unsplash.com/photo-1586953208270-767889fa9b0e?w=600&h=600&fit=crop',
+   '<h3>产品概述</h3><p>BC-500 智能读码器，高速一维/二维条码读取，读取速度 >60 次/秒，适用于产线追溯与物流分拣。</p>',
+   '<table border="1" cellpadding="6"><tr><th>参数</th><th>规格</th></tr><tr><td>读取速度</td><td>&gt;60次/秒</td></tr><tr><td>码制</td><td>一维/二维</td></tr><tr><td>防护等级</td><td>IP65</td></tr><tr><td>接口</td><td>RS232/Ethernet</td></tr></table>',
+   2);
+
+-- 产品附件示例
+INSERT INTO product_attachments (product_id, file_name, file_url, file_type, file_size, sort_order) VALUES
+  ('b1b2c3d4-0001-4000-8000-000000000001', 'LS-1000 产品手册.pdf', 'https://example.com/docs/ls1000-manual.pdf', 'manual', 2048000, 1),
+  ('b1b2c3d4-0001-4000-8000-000000000001', 'CE 认证证书.pdf', 'https://example.com/docs/ls1000-ce.pdf', 'certificate', 512000, 2),
+  ('b1b2c3d4-0001-4000-8000-000000000004', 'CR-600 产品手册.pdf', 'https://example.com/docs/cr600-manual.pdf', 'manual', 3072000, 1),
+  ('b1b2c3d4-0001-4000-8000-000000000004', 'ISO 9001 证书.pdf', 'https://example.com/docs/cr600-iso.pdf', 'certificate', 256000, 2),
+  ('b1b2c3d4-0001-4000-8000-000000000004', 'CAD 模型文件.zip', 'https://example.com/docs/cr600-cad.zip', 'other', 10240000, 3);
 
 -- 解决方案
 INSERT INTO solutions (id, industry_name, image_url, description, related_product_ids, sort_order) VALUES

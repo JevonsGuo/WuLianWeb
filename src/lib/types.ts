@@ -13,14 +13,27 @@ export interface Product {
   name: string;
   model: string;
   description: string;
-  image_urls: string[]; // 支持多张图片
+  image_urls: string[];
+  main_image_url: string;
+  summary_content: string;       // HTML
+  specifications_content: string; // HTML
   manual_url: string;
   certificate_url: string;
   sort_order: number;
   created_at: string;
   updated_at: string;
-  // Joined field
   category_name?: string;
+}
+
+export interface ProductAttachment {
+  id: string;
+  product_id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string; // 'certificate' | 'manual' | 'other'
+  file_size: number | null;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface Solution {
@@ -28,7 +41,7 @@ export interface Solution {
   industry_name: string;
   image_url: string;
   description: string;
-  related_product_ids: string; // JSON string of product IDs
+  related_product_ids: string;
   sort_order: number;
   created_at: string;
 }
