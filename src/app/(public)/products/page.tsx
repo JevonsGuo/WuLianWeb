@@ -120,7 +120,7 @@ function ProductsContent() {
         )}
 
         {selectedProduct ? (
-          <div className="flex-1 min-w-0 overflow-hidden animate-slide-in-right">
+          <div key={selectedProduct.id} className="flex-1 min-w-0 overflow-hidden animate-slide-in-right">
             <ProductDetail product={selectedProduct} attachments={attachments} />
           </div>
         ) : (
