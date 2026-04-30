@@ -6,8 +6,8 @@
 
 :root {
   --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 255, 255, 255;
-  --background-end-rgb: 248, 250, 252;
+  --background-start-rgb: 245, 245, 247;
+  --background-end-rgb: 245, 245, 247;
 }
 
 body {
@@ -70,6 +70,10 @@ body {
 
 /* ===== Mobile responsive for three-column layout ===== */
 @media (max-width: 768px) {
+  .products-page-wrapper {
+    height: auto !important;
+    min-height: calc(100vh - 64px);
+  }
   .three-column-layout {
     flex-direction: column;
     height: auto !important;

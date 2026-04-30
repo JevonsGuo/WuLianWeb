@@ -81,60 +81,62 @@ function ProductsContent() {
 
   if (loading) {
     return (
-      <div className="bg-surface-50 h-[calc(100vh-64px)] flex items-center justify-center">
+      <div className="h-[calc(100vh-64px)] flex items-center justify-center">
         <div className="animate-pulse text-surface-400">加载中...</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white h-[calc(100vh-64px)] flex three-column-layout">
-      <div className="w-[260px] shrink-0 border-r border-surface-200/60 overflow-hidden">
-        <CategoryList
-          categories={categories}
-          selectedId={selectedCategoryId}
-          onSelect={handleCategorySelect}
-        />
-      </div>
-
-      {showProducts ? (
-        <div
-          key={productsKey}
-          className="w-[300px] shrink-0 border-r border-surface-200/60 overflow-hidden animate-slide-in-right"
-        >
-          <ProductList
-            products={products}
-            selectedId={selectedProductId}
-            onSelect={handleProductSelect}
+    <div className="products-page-wrapper h-[calc(100vh-64px)] px-4 sm:px-6 lg:px-8 py-4">
+      <div className="max-w-7xl mx-auto h-full bg-white rounded-2xl shadow-card overflow-hidden flex three-column-layout">
+        <div className="w-[260px] shrink-0 border-r border-surface-200/60 overflow-hidden">
+          <CategoryList
+            categories={categories}
+            selectedId={selectedCategoryId}
+            onSelect={handleCategorySelect}
           />
         </div>
-      ) : (
-        <div className="w-[300px] shrink-0 border-r border-surface-200/60 overflow-hidden flex items-center justify-center text-surface-400 bg-surface-50/30">
-          <div className="text-center px-5">
-            <Layers size={40} className="mx-auto mb-4 text-surface-200" />
-            <p className="text-sm font-medium text-surface-400">选择产品大类</p>
-            <p className="text-xs mt-1.5 text-surface-300 leading-relaxed">从左侧选择一个分类，查看该分类下的产品列表</p>
-          </div>
-        </div>
-      )}
 
-      {selectedProduct ? (
-        <div className="flex-1 min-w-0 overflow-hidden animate-slide-in-right">
-          <ProductDetail product={selectedProduct} attachments={attachments} />
-        </div>
-      ) : (
-        <div className="flex-1 min-w-0 overflow-hidden flex items-center justify-center text-surface-400 bg-surface-50/30">
-          <div className="text-center">
-            <Package size={48} className="mx-auto mb-4 text-surface-200" />
-            <p className="text-base font-medium">请选择一个产品</p>
-            <p className="text-sm mt-1 text-surface-300">
-              {showProducts
-                ? '从产品列表中选择具体产品查看详情'
-                : '请先选择一个产品大类'}
-            </p>
+        {showProducts ? (
+          <div
+            key={productsKey}
+            className="w-[300px] shrink-0 border-r border-surface-200/60 overflow-hidden animate-slide-in-right"
+          >
+            <ProductList
+              products={products}
+              selectedId={selectedProductId}
+              onSelect={handleProductSelect}
+            />
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="w-[300px] shrink-0 border-r border-surface-200/60 overflow-hidden flex items-center justify-center text-surface-400 bg-surface-50/30">
+            <div className="text-center px-5">
+              <Layers size={40} className="mx-auto mb-4 text-surface-200" />
+              <p className="text-sm font-medium text-surface-400">选择产品大类</p>
+              <p className="text-xs mt-1.5 text-surface-300 leading-relaxed">从左侧选择一个分类，查看该分类下的产品列表</p>
+            </div>
+          </div>
+        )}
+
+        {selectedProduct ? (
+          <div className="flex-1 min-w-0 overflow-hidden animate-slide-in-right">
+            <ProductDetail product={selectedProduct} attachments={attachments} />
+          </div>
+        ) : (
+          <div className="flex-1 min-w-0 overflow-hidden flex items-center justify-center text-surface-400 bg-surface-50/30">
+            <div className="text-center">
+              <Package size={48} className="mx-auto mb-4 text-surface-200" />
+              <p className="text-base font-medium">请选择一个产品</p>
+              <p className="text-sm mt-1 text-surface-300">
+                {showProducts
+                  ? '从产品列表中选择具体产品查看详情'
+                  : '请先选择一个产品大类'}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -143,7 +145,7 @@ export default function ProductsPage() {
   return (
     <Suspense
       fallback={
-        <div className="bg-surface-50 h-[calc(100vh-64px)] flex items-center justify-center">
+        <div className="h-[calc(100vh-64px)] flex items-center justify-center">
           <div className="animate-pulse text-surface-400">加载中...</div>
         </div>
       }

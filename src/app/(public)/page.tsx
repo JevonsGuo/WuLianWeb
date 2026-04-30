@@ -112,7 +112,7 @@ export default async function HomePage() {
       </section>
 
       {/* Solutions */}
-      <section className="py-24 bg-surface-50">
+      <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-surface-900 mb-4 tracking-tight">行业解决方案</h2>
