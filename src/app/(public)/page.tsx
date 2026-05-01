@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { ArrowRight, Cpu, Bot, Eye } from 'lucide-react';
 
 export const revalidate = 30;
 
 async function getHomeData() {
   const [categoriesRes, solutionsRes] = await Promise.all([
-    supabase.from('product_categories').select('*').order('sort_order').limit(3),
-    supabase.from('solutions').select('*').order('sort_order').limit(3),
+    supabaseAdmin.from('product_categories').select('*').order('sort_order').limit(3),
+    supabaseAdmin.from('solutions').select('*').order('sort_order').limit(3),
   ]);
   return {
     categories: categoriesRes.data || [],

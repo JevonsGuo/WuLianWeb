@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
 import { ProductCategory, Product, ProductAttachment } from '@/lib/types';
 import CategoryList from '@/components/CategoryList';
 import ProductList from '@/components/ProductList';
@@ -24,11 +23,10 @@ function ProductsContent() {
 
   useEffect(() => {
     async function fetchCategories() {
-      const { data } = await supabase
-        .from('product_categories')
-        .select('*')
-        .order('sort_order');
-      if (data && data.length > 0) {
+      const res = await fetch('/api/categories');
+      const result = await res.json();
+      const data = result.data || [];
+      if (data.length > 0) {
         setCategories(data);
         if (categoryParam) {
           setSelectedCategoryId(categoryParam);
@@ -41,12 +39,9 @@ function ProductsContent() {
   }, [categoryParam]);
 
   const fetchProducts = useCallback(async (categoryId: string) => {
-    const { data } = await supabase
-      .from('products')
-      .select('*')
-      .eq('category_id', categoryId)
-      .order('sort_order');
-    setProducts(data || []);
+    const res = await fetch(`/api/products?category_id=${categoryId}`);
+    const result = await res.json();
+    setProducts(result.data || []);
   }, []);
 
   useEffect(() => {
@@ -56,12 +51,9 @@ function ProductsContent() {
   useEffect(() => {
     if (!selectedProductId) { setAttachments([]); return; }
     async function fetchAttachments() {
-      const { data } = await supabase
-        .from('product_attachments')
-        .select('*')
-        .eq('product_id', selectedProductId)
-        .order('sort_order');
-      setAttachments(data || []);
+      const res = await fetch(`/api/attachments?product_id=${selectedProductId}`);
+      const result = await res.json();
+      setAttachments(result.data || []);
     }
     fetchAttachments();
   }, [selectedProductId]);

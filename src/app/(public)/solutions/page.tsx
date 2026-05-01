@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
@@ -6,8 +6,8 @@ export const revalidate = 30;
 
 async function getSolutions() {
   const [solutionsRes, productsRes] = await Promise.all([
-    supabase.from('solutions').select('*').order('sort_order'),
-    supabase.from('products').select('id, name, model, category_id'),
+    supabaseAdmin.from('solutions').select('*').order('sort_order'),
+    supabaseAdmin.from('products').select('id, name, model, category_id'),
   ]);
   return {
     solutions: solutionsRes.data || [],

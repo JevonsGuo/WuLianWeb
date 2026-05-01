@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
 import {
   Plus, Pencil, Trash2, Upload, AlertCircle, X,
@@ -37,12 +36,17 @@ export default function ProductsPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const fetchData = useCallback(async () => {
-    const [productsRes, categoriesRes] = await Promise.all([
-      supabase.from('products').select('*').order('sort_order'),
-      supabase.from('product_categories').select('*').order('sort_order'),
-    ]);
-    setProducts(productsRes.data || []);
-    setCategories(categoriesRes.data || []);
+    try {
+      const [productsRes, categoriesRes] = await Promise.all([
+        fetch('/api/admin/products').then((r) => r.json()),
+        fetch('/api/admin/categories').then((r) => r.json()),
+      ]);
+      setProducts(productsRes.data || []);
+      setCategories(categoriesRes.data || []);
+    } catch {
+      setProducts([]);
+      setCategories([]);
+    }
     setLoading(false);
   }, []);
 
@@ -124,12 +128,16 @@ export default function ProductsPage() {
           const nameLower = file.name.toLowerCase();
           if (nameLower.includes('证书') || nameLower.includes('cert')) fileType = 'certificate';
           else if (nameLower.includes('手册') || nameLower.includes('manual')) fileType = 'manual';
-          await supabase.from('product_attachments').insert({
-            product_id: editing?.id || 'pending',
-            file_name: file.name,
-            file_url: data.url,
-            file_type: fileType,
-            file_size: file.size,
+          await fetch('/api/admin/attachments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_id: editing?.id || 'pending',
+              file_name: file.name,
+              file_url: data.url,
+              file_type: fileType,
+              file_size: file.size,
+            }),
           });
         }
       } catch {
@@ -137,15 +145,20 @@ export default function ProductsPage() {
       }
     }
     if (editing?.id) {
-      const { data } = await supabase.from('product_attachments').select('*').eq('product_id', editing.id).order('sort_order');
-      setAttachments(data || []);
+      const res = await fetch(`/api/admin/attachments?product_id=${editing.id}`);
+      const attData = await res.json();
+      setAttachments(attData.data || []);
     }
     setUploading(false);
   };
 
   const handleDeleteAttachment = async (attId: string) => {
     if (!confirm('确定删除该附件？')) return;
-    await supabase.from('product_attachments').delete().eq('id', attId);
+    await fetch('/api/admin/attachments', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: attId }),
+    });
     setAttachments((prev) => prev.filter((a) => a.id !== attId));
   };
 
@@ -180,7 +193,11 @@ export default function ProductsPage() {
         const data = await res.json();
         if (!res.ok) { setSaveError(data.error || '保存失败'); setSaving(false); return; }
         if (data.data?.id) {
-          await supabase.from('product_attachments').update({ product_id: data.data.id }).eq('product_id', 'pending');
+          await fetch('/api/admin/attachments', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: 'pending', product_id: data.data.id }),
+          });
         }
       }
     } catch {
@@ -215,14 +232,23 @@ export default function ProductsPage() {
     setImageUrlInput('');
     setActiveTab('summary');
     setCurrentImageIndex(0);
-    const { data } = await supabase.from('product_attachments').select('*').eq('product_id', p.id).order('sort_order');
-    setAttachments(data || []);
+    const res = await fetch(`/api/admin/attachments?product_id=${p.id}`);
+    const attData = await res.json();
+    setAttachments(attData.data || []);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('确定删除该产品？')) return;
-    await supabase.from('product_attachments').delete().eq('product_id', id);
-    await supabase.from('products').delete().eq('id', id);
+    await fetch('/api/admin/attachments', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: id }),
+    });
+    await fetch('/api/admin/products', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
     fetchData();
   };
 
