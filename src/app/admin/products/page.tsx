@@ -30,6 +30,8 @@ export default function ProductsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('summary');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -148,7 +150,9 @@ export default function ProductsPage() {
   };
 
   const handleSave = async () => {
+    if (!form.name || !form.model || !form.category_id) return;
     setSaving(true);
+    setSaveError('');
     const payload = {
       name: form.name, model: form.model, description: form.description,
       category_id: form.category_id, image_urls: form.image_urls,
@@ -158,15 +162,35 @@ export default function ProductsPage() {
       manual_url: form.manual_url, certificate_url: form.certificate_url,
       sort_order: form.sort_order,
     };
-    if (editing) {
-      await supabase.from('products').update(payload).eq('id', editing.id);
-    } else {
-      const { data } = await supabase.from('products').insert(payload).select();
-      if (data && data[0]) {
-        await supabase.from('product_attachments').update({ product_id: data[0].id }).eq('product_id', 'pending');
+    try {
+      if (editing && editing.id !== '__new__') {
+        const res = await fetch('/api/admin/products', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editing.id, ...payload }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setSaveError(data.error || '保存失败'); setSaving(false); return; }
+      } else {
+        const res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) { setSaveError(data.error || '保存失败'); setSaving(false); return; }
+        if (data.data?.id) {
+          await supabase.from('product_attachments').update({ product_id: data.data.id }).eq('product_id', 'pending');
+        }
       }
+    } catch {
+      setSaveError('网络错误，请重试');
+      setSaving(false);
+      return;
     }
     setSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
     setEditing(null);
     setForm({ name: '', model: '', description: '', category_id: '', image_urls: [], main_image_url: '', summary_content: '', specifications_content: '', manual_url: '', certificate_url: '', sort_order: 0 });
     setImageUrlInput('');
@@ -234,9 +258,9 @@ export default function ProductsPage() {
     const images = form.image_urls;
 
     return (
-      <div className="h-[calc(100vh-64px)] flex flex-col bg-white animate-fade-in">
+      <div className="h-[calc(100vh-64px)] flex flex-col bg-white rounded-2xl shadow-card animate-fade-in mx-4 my-4 overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-surface-200/60 bg-surface-50/50">
+        <div className="relative flex items-center justify-between px-6 py-3 border-b border-surface-200/60 bg-surface-50/50">
           <div className="flex items-center space-x-3">
             <button onClick={handleCancel} className="p-1.5 hover:bg-surface-100 rounded-lg transition-colors">
               <ChevronLeft size={18} className="text-surface-500" />
@@ -261,6 +285,12 @@ export default function ProductsPage() {
               <span>{saving ? '保存中...' : '保存'}</span>
             </button>
           </div>
+          {saveError && (
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 flex items-center space-x-1.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg text-red-600 text-xs whitespace-nowrap">
+              <AlertCircle size={12} />
+              <span>{saveError}</span>
+            </div>
+          )}
         </div>
 
         {/* Main editing area - mirrors the frontend detail layout */}
@@ -572,6 +602,12 @@ export default function ProductsPage() {
   // ==================== List Mode ====================
   return (
     <div className="space-y-6">
+      {saveSuccess && (
+        <div className="flex items-center space-x-2 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm font-medium animate-fade-in">
+          <Save size={16} />
+          <span>保存成功</span>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-surface-900 tracking-tight">产品管理</h1>
