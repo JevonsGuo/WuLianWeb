@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticated } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
+const PRODUCT_COLUMNS = [
+  'name', 'model', 'description', 'category_id',
+  'image_urls', 'main_image_url',
+  'summary_content', 'specifications_content',
+  'manual_url', 'certificate_url', 'sort_order',
+] as const;
+
+function pickProductFields(body: Record<string, any>) {
+  const result: Record<string, any> = {};
+  for (const key of PRODUCT_COLUMNS) {
+    if (key in body) {
+      result[key] = body[key];
+    }
+  }
+  return result;
+}
+
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('products')
@@ -20,9 +37,10 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
+  const payload = pickProductFields(body);
   const { data, error } = await supabaseAdmin
     .from('products')
-    .insert(body)
+    .insert(payload)
     .select()
     .single();
 
@@ -37,10 +55,12 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: '未授权' }, { status: 401 });
   }
 
-  const { id, ...updates } = await request.json();
+  const body = await request.json();
+  const { id, ...rest } = body;
+  const payload = pickProductFields(rest);
   const { data, error } = await supabaseAdmin
     .from('products')
-    .update(updates)
+    .update(payload)
     .eq('id', id)
     .select()
     .single();
