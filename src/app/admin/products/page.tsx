@@ -156,7 +156,6 @@ export default function ProductsPage() {
     const payload = {
       name: form.name, model: form.model, description: form.description,
       category_id: form.category_id, image_urls: form.image_urls,
-      main_image_url: form.main_image_url,
       summary_content: form.summary_content,
       specifications_content: form.specifications_content,
       manual_url: form.manual_url, certificate_url: form.certificate_url,
@@ -445,22 +444,6 @@ export default function ProductsPage() {
                   placeholder="简要描述产品特点..."
                   className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow resize-none"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-surface-500 mb-1.5">详情页主图</label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={form.main_image_url}
-                    onChange={(e) => setForm((f) => ({ ...f, main_image_url: e.target.value }))}
-                    placeholder="主图 URL 或上传"
-                    className="flex-1 px-3.5 py-2 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
-                  />
-                  <label className="flex items-center space-x-1 px-3 py-2 bg-surface-50 border border-surface-200 rounded-xl cursor-pointer hover:bg-surface-100 text-sm shrink-0 transition-colors">
-                    <Upload size={14} className="text-surface-400" />
-                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'main_image_url', 'product-images')} className="hidden" />
-                  </label>
-                </div>
               </div>
             </div>
           </div>
