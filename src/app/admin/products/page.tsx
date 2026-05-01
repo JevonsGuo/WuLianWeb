@@ -156,6 +156,7 @@ export default function ProductsPage() {
     const payload = {
       name: form.name, model: form.model, description: form.description,
       category_id: form.category_id, image_urls: form.image_urls,
+      main_image_url: form.main_image_url,
       summary_content: form.summary_content,
       specifications_content: form.specifications_content,
       manual_url: form.manual_url, certificate_url: form.certificate_url,

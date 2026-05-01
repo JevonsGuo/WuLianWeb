@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 const PRODUCT_COLUMNS = [
   'name', 'model', 'description', 'category_id',
-  'image_urls',
+  'image_urls', 'main_image_url',
   'summary_content', 'specifications_content',
   'manual_url', 'certificate_url', 'sort_order',
 ] as const;
