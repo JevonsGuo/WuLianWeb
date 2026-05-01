@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill-new/dist/quill.snow.css';
 
@@ -14,17 +14,17 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange, placeholder, style }: RichTextEditorProps) {
-  const [tableUpReady, setTableUpReady] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     import('@/lib/quillTableUp').then(() => {
-      setTableUpReady(true);
+      setReady(true);
     }).catch(() => {
-      setTableUpReady(true);
+      setReady(true);
     });
   }, []);
 
-  const modules = useMemo(() => ({
+  const modules = {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
       ['bold', 'italic', 'underline', 'strike'],
@@ -55,15 +55,9 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         SwitchWidth: '切换表格宽度',
       },
     },
-  }), []);
+  };
 
-  const formats = [
-    'header', 'bold', 'italic', 'underline', 'strike',
-    'list', 'bullet', 'link', 'image',
-    'table-up', 'table-up-cell-inner',
-  ];
-
-  if (!tableUpReady) {
+  if (!ready) {
     return (
       <div style={style} className="h-40 flex items-center justify-center text-surface-400 text-sm">
         加载编辑器...
@@ -78,7 +72,6 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         value={value}
         onChange={onChange}
         modules={modules}
-        formats={formats}
         placeholder={placeholder || '请输入内容...'}
       />
     </div>
