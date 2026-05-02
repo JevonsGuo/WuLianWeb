@@ -18,45 +18,42 @@ export default function CategoryList({ categories, selectedId, onSelect, disable
           产品大类
         </h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-2.5">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
         {categories.map((cat) => {
           const isSelected = selectedId === cat.id;
           return (
             <button
               key={cat.id}
               onClick={() => onSelect(cat.id)}
-              className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-left transition-all duration-200 mb-1 ${
+              className={`w-full relative overflow-hidden rounded-xl transition-all duration-200 group ${
                 isSelected
-                  ? 'bg-brand-50 text-brand-700 shadow-sm'
-                  : 'text-surface-600 hover:bg-surface-100/80 hover:text-surface-800'
+                  ? 'ring-2 ring-brand-400 shadow-md'
+                  : 'ring-1 ring-surface-200/60 hover:ring-brand-300 hover:shadow-sm'
               }`}
             >
-              {cat.image_url ? (
-                <img
-                  src={cat.image_url}
-                  alt={cat.name}
-                  className={`w-10 h-10 rounded-lg object-cover shrink-0 ring-1 ${
-                    isSelected ? 'ring-brand-200' : 'ring-surface-200'
-                  }`}
-                />
-              ) : (
-                <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 ${
-                    isSelected
-                      ? 'bg-brand-100 text-brand-600'
-                      : 'bg-surface-100 text-surface-400'
-                  }`}
-                >
-                  {cat.name[0]}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <span className={`text-sm font-medium block truncate ${isSelected ? 'text-brand-700' : ''}`}>
+              <div className="aspect-[16/7] w-full">
+                {cat.image_url ? (
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-surface-200 to-surface-300 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-surface-400">{cat.name[0]}</span>
+                  </div>
+                )}
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 px-3 pb-2.5 pt-6">
+                <span className={`text-sm font-semibold block truncate ${
+                  isSelected ? 'text-white' : 'text-white/90 group-hover:text-white'
+                }`}>
                   {cat.name}
                 </span>
               </div>
               {isSelected && (
-                <div className="w-1 h-5 rounded-full bg-brand-500 shrink-0" />
+                <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand-400 ring-2 ring-white/80" />
               )}
             </button>
           );
