@@ -76,6 +76,7 @@ export default function ProductsPage() {
       setUploadError('网络错误');
     }
     setUploading(false);
+    e.target.value = '';
   };
 
   const handleAddImageUrl = () => {
@@ -389,10 +390,16 @@ export default function ProductsPage() {
                   </div>
                 ))}
                 {/* Add image button */}
-                <label className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
-                  <ImagePlus size={18} className="text-surface-400" />
-                  <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-                </label>
+                {uploading ? (
+                  <div className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-brand-400 flex items-center justify-center bg-brand-50">
+                    <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <label className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
+                    <ImagePlus size={18} className="text-surface-400" />
+                    <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+                  </label>
+                )}
               </div>
 
               {/* URL input */}

@@ -4,9 +4,9 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TableKit } from '@tiptap/extension-table';
 import { Link } from '@tiptap/extension-link';
-import { Image } from '@tiptap/extension-image';
+import { Image as TiptapImage } from '@tiptap/extension-image';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface RichTextEditorProps {
   value: string;
@@ -16,7 +16,7 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange, placeholder, style }: RichTextEditorProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -28,7 +28,11 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         openOnClick: false,
         HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' },
       }),
-      Image.configure({ inline: false }),
+      TiptapImage.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: { class: 'tiptap-img' },
+      }),
       Placeholder.configure({ placeholder: placeholder || '请输入内容...' }),
     ],
     content: value,
@@ -61,32 +65,38 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
   }, [editor]);
 
   const addImageByUrl = useCallback(() => {
-    const url = window.prompt('输入图片地址:');
+    const url = window.prompt('输入图片地址（需以 http:// 或 https:// 开头）:');
     if (url) {
       editor?.chain().focus().setImage({ src: url }).run();
     }
   }, [editor]);
 
-  const uploadImage = useCallback(async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('bucket', 'product-images');
-    try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.url) {
-        editor?.chain().focus().setImage({ src: data.url }).run();
+  const handleUploadClick = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'product-images');
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.url) {
+          editor?.chain().focus().setImage({ src: data.url }).run();
+        } else {
+          alert(data.error || '上传失败');
+        }
+      } catch {
+        alert('上传失败，请检查网络');
       }
-    } catch {}
+      setUploading(false);
+    };
+    input.click();
   }, [editor]);
-
-  const handleImageFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadImage(file);
-    }
-    e.target.value = '';
-  }, [uploadImage]);
 
   if (!editor) return null;
 
@@ -146,19 +156,13 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         <span className="tiptap-divider" />
         <button type="button" onClick={addTable} title="插入表格">⊞ 表格</button>
         <button type="button" onClick={addLink} className={editor.isActive('link') ? 'is-active' : ''} title="插入链接">🔗 链接</button>
-        <button type="button" onClick={() => fileInputRef.current?.click()} title="上传图片">📤 上传图片</button>
-        <button type="button" onClick={addImageByUrl} title="图片URL">🖼 图片链接</button>
+        <button type="button" onClick={handleUploadClick} disabled={uploading} title="上传本地图片">
+          {uploading ? '⏳ 上传中...' : '📤 上传图片'}
+        </button>
+        <button type="button" onClick={addImageByUrl} title="输入图片URL链接">🖼 图片链接</button>
         <span className="tiptap-divider" />
         <button type="button" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="清除格式">清除</button>
       </div>
-
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleImageFileChange}
-        className="hidden"
-      />
 
       {editor.isActive('table') && (
         <div className="tiptap-table-toolbar">
