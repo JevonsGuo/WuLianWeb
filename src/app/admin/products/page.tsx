@@ -840,15 +840,17 @@ export default function ProductsPage() {
                     <div className="flex items-center space-x-1 shrink-0 ml-2">
                       <button
                         onClick={() => handleEdit(p)}
-                        className="p-1.5 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                        title="编辑"
+                        className="p-3 text-surface-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
                       >
-                        <Pencil size={14} />
+                        <Pencil size={28} />
                       </button>
                       <button
                         onClick={() => handleDelete(p.id)}
-                        className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="删除"
+                        className="p-3 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={28} />
                       </button>
                     </div>
                   </div>
