@@ -46,7 +46,7 @@ export default function CategoryList({ categories, selectedId, onSelect, disable
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 px-3 pb-2.5 pt-6">
-                <span className={`text-sm font-semibold block truncate ${
+                <span className={`text-base font-semibold block truncate ${
                   isSelected ? 'text-white' : 'text-white/90 group-hover:text-white'
                 }`}>
                   {cat.name}
