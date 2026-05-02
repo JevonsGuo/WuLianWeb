@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ProductCategory, Product, ProductAttachment } from '@/lib/types';
 import CategoryList from '@/components/CategoryList';
 import ProductList from '@/components/ProductList';
@@ -10,6 +10,8 @@ import { Package, Layers } from 'lucide-react';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const categoryParam = searchParams.get('category');
   const productParam = searchParams.get('product');
 
@@ -78,9 +80,19 @@ function ProductsContent() {
     setAttachments([]);
     setProductsKey((k) => k + 1);
     setShowProducts(true);
+    const cat = categories.find((c) => c.id === id);
+    router.replace(`${pathname}?category=${cat?.slug || ''}`);
   };
 
-  const handleProductSelect = (id: string) => setSelectedProductId(id);
+  const handleProductSelect = (id: string) => {
+    setSelectedProductId(id);
+    const product = products.find((p) => p.id === id);
+    const cat = categories.find((c) => c.id === selectedCategoryId);
+    const params = new URLSearchParams();
+    if (cat?.slug) params.set('category', cat.slug);
+    if (product?.model) params.set('product', product.model);
+    router.replace(`${pathname}?${params.toString()}`);
+  };
 
   if (loading) {
     return (
