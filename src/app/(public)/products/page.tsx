@@ -18,6 +18,7 @@ function ProductsContent() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<ProductAttachment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
   const [productsKey, setProductsKey] = useState(0);
 
@@ -39,9 +40,11 @@ function ProductsContent() {
   }, [categoryParam]);
 
   const fetchProducts = useCallback(async (categoryId: string) => {
+    setProductsLoading(true);
     const res = await fetch(`/api/products?category_id=${categoryId}`);
     const result = await res.json();
     setProducts(result.data || []);
+    setProductsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -64,7 +67,6 @@ function ProductsContent() {
     setSelectedCategoryId(id);
     setSelectedProductId(null);
     setAttachments([]);
-    setProducts([]);
     setProductsKey((k) => k + 1);
     setShowProducts(true);
   };
@@ -99,6 +101,7 @@ function ProductsContent() {
               products={products}
               selectedId={selectedProductId}
               onSelect={handleProductSelect}
+              loading={productsLoading}
             />
           </div>
         ) : (

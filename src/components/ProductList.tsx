@@ -7,9 +7,10 @@ interface ProductListProps {
   products: Product[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  loading?: boolean;
 }
 
-export default function ProductList({ products, selectedId, onSelect }: ProductListProps) {
+export default function ProductList({ products, selectedId, onSelect, loading }: ProductListProps) {
   return (
     <div className="h-full flex flex-col bg-white">
       <div className="px-5 py-4 border-b border-surface-200/60">
@@ -18,7 +19,14 @@ export default function ProductList({ products, selectedId, onSelect }: ProductL
         </h2>
       </div>
       <div className="flex-1 overflow-y-auto p-2.5">
-        {products.length === 0 ? (
+        {loading ? (
+          <div className="px-4 py-16 text-center">
+            <div className="w-12 h-12 bg-surface-100 rounded-2xl flex items-center justify-center mx-auto mb-3 animate-pulse">
+              <ImageIcon size={20} className="text-surface-300" />
+            </div>
+            <p className="text-sm text-surface-400">加载中...</p>
+          </div>
+        ) : products.length === 0 ? (
           <div className="px-4 py-16 text-center">
             <div className="w-12 h-12 bg-surface-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <ImageIcon size={20} className="text-surface-300" />
