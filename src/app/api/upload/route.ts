@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '缺少文件或 bucket 参数' }, { status: 400 });
     }
 
-    const allowedBuckets = ['product-images', 'solution-images', 'documents'];
+    const allowedBuckets = ['product-images', 'solution-images', 'documents', 'product-attachments'];
     if (!allowedBuckets.includes(bucket)) {
       return NextResponse.json({ error: '无效的 bucket' }, { status: 400 });
     }

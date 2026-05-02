@@ -196,36 +196,55 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                   <p>暂无附件</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {attachments.map((att) => (
-                    <div
-                      key={att.id}
-                      className="flex items-center justify-between p-4 bg-surface-50 rounded-xl border border-surface-200/60 hover:border-surface-300 transition-colors duration-200"
-                    >
-                      <div className="flex items-center space-x-3.5 min-w-0">
-                        <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
-                          {fileIcon(att.file_type)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-surface-800 truncate">{att.file_name}</p>
-                          <div className="flex items-center space-x-2 text-xs text-surface-400 mt-0.5">
-                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${fileTypeColor(att.file_type)}`}>
+                <div className="overflow-hidden rounded-xl border border-surface-200/60">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-surface-50 border-b border-surface-200/60">
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-10"></th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">文件名</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-24">类型</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-20">大小</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">描述</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold text-surface-500 w-16"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attachments.map((att) => (
+                        <tr key={att.id} className="border-b border-surface-100 last:border-b-0 hover:bg-surface-50/50">
+                          <td className="px-4 py-3">
+                            {fileIcon(att.file_type)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <a
+                              href={att.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-surface-800 font-medium hover:text-brand-600 transition-colors truncate block max-w-[200px]"
+                            >
+                              {att.file_name}
+                            </a>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${fileTypeColor(att.file_type)}`}>
                               {fileTypeLabel(att.file_type)}
                             </span>
-                            {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
-                          </div>
-                        </div>
-                      </div>
-                      <a
-                        href={att.file_url}
-                        download={att.file_name}
-                        className="flex items-center space-x-1.5 px-3.5 py-2 text-sm text-brand-600 hover:bg-brand-50 rounded-lg transition-colors duration-200 shrink-0 font-medium"
-                      >
-                        <Download size={14} />
-                        <span>下载</span>
-                      </a>
-                    </div>
-                  ))}
+                          </td>
+                          <td className="px-4 py-3 text-surface-400 text-xs">{att.file_size ? formatFileSize(att.file_size) : '-'}</td>
+                          <td className="px-4 py-3 text-surface-500 text-xs truncate max-w-[180px]">{att.description || '-'}</td>
+                          <td className="px-4 py-3 text-right">
+                            <a
+                              href={att.file_url}
+                              download={att.file_name}
+                              className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs text-brand-600 hover:bg-brand-50 rounded-lg transition-colors font-medium"
+                            >
+                              <Download size={12} />
+                              <span>下载</span>
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
