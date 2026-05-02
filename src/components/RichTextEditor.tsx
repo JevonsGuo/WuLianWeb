@@ -31,7 +31,6 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
       TiptapImage.configure({
         inline: false,
         allowBase64: true,
-        HTMLAttributes: { class: 'tiptap-img' },
       }),
       Placeholder.configure({ placeholder: placeholder || '请输入内容...' }),
     ],
@@ -66,8 +65,13 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
 
   const addImageByUrl = useCallback(() => {
     const url = window.prompt('输入图片地址（需以 http:// 或 https:// 开头）:');
-    if (url) {
-      editor?.chain().focus().setImage({ src: url }).run();
+    if (url && url.trim()) {
+      const trimmed = url.trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        editor?.chain().focus().setImage({ src: trimmed }).run();
+      } else {
+        alert('图片地址必须以 http:// 或 https:// 开头');
+      }
     }
   }, [editor]);
 
@@ -75,15 +79,23 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = async () => {
+    input.style.position = 'fixed';
+    input.style.top = '-9999px';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+
+    input.addEventListener('change', async () => {
       const file = input.files?.[0];
-      if (!file) return;
+      if (!file) {
+        document.body.removeChild(input);
+        return;
+      }
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('bucket', 'product-images');
       try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
         const data = await res.json();
         if (data.url) {
           editor?.chain().focus().setImage({ src: data.url }).run();
@@ -94,7 +106,9 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         alert('上传失败，请检查网络');
       }
       setUploading(false);
-    };
+      document.body.removeChild(input);
+    });
+
     input.click();
   }, [editor]);
 

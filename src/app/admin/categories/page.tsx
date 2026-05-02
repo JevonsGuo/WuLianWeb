@@ -34,7 +34,7 @@ export default function CategoriesPage() {
     formData.append('file', file);
     formData.append('bucket', 'product-images');
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
       if (res.ok && data.url) {
         setForm((f) => ({ ...f, image_url: data.url }));

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
 import {
   Plus, Pencil, Trash2, Upload, AlertCircle, X,
@@ -34,6 +34,7 @@ export default function ProductsPage() {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('summary');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -65,7 +66,7 @@ export default function ProductsPage() {
     formData.append('file', file);
     formData.append('bucket', 'product-images');
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
       if (data.url) {
         setForm((f) => ({ ...f, image_urls: [...f.image_urls, data.url] }));
@@ -99,7 +100,7 @@ export default function ProductsPage() {
     formData.append('file', file);
     formData.append('bucket', bucket);
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
       if (data.url) {
         setForm((f) => ({ ...f, [field]: data.url }));
@@ -122,7 +123,7 @@ export default function ProductsPage() {
       formData.append('file', file);
       formData.append('bucket', 'product-attachments');
       try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
         const data = await res.json();
         if (data.url) {
           let fileType = 'other';
@@ -395,11 +396,15 @@ export default function ProductsPage() {
                     <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <label className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors"
+                  >
                     <ImagePlus size={18} className="text-surface-400" />
-                    <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-                  </label>
+                  </button>
                 )}
+                <input ref={imageInputRef} type="file" accept="image/*" onChange={handleUpload} className="sr-only" />
               </div>
 
               {/* URL input */}

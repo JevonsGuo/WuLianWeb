@@ -45,7 +45,7 @@ export default function SolutionsPage() {
     formData.append('file', file);
     formData.append('bucket', 'solution-images');
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
       if (res.ok && data.url) setForm((f) => ({ ...f, image_url: data.url }));
       else setUploadError(data.error || '上传失败，请先在 Supabase Storage 中创建 solution-images bucket（设为 Public）');

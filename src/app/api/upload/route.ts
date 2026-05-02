@@ -4,7 +4,8 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(request: NextRequest) {
   if (!isAuthenticated(request)) {
-    return NextResponse.json({ error: '未授权' }, { status: 401 });
+    const token = request.cookies.get('admin_token')?.value;
+    return NextResponse.json({ error: '未授权', debug: token ? 'token_invalid' : 'no_token' }, { status: 401 });
   }
 
   try {
