@@ -334,6 +334,7 @@ export default function ProductsPage() {
                       src={images[currentImageIndex]}
                       alt="产品图片"
                       className="w-full h-full object-contain"
+                      referrerPolicy="no-referrer"
                     />
                     {images.length > 1 && (
                       <>
@@ -380,7 +381,7 @@ export default function ProductsPage() {
                         idx === currentImageIndex ? 'ring-brand-400 shadow-sm' : 'ring-surface-200 opacity-60 hover:opacity-80'
                       }`}
                     >
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <img src={url} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     </button>
                     <button
                       onClick={() => handleRemoveImage(idx)}
@@ -682,7 +683,7 @@ export default function ProductsPage() {
               >
                 <div className="aspect-[16/10] bg-gradient-to-br from-brand-50 to-surface-50 overflow-hidden relative">
                   {thumb ? (
-                    <img src={thumb} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={thumb} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Package size={32} className="text-surface-200" />

@@ -62,6 +62,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                   src={images[currentImageIndex]}
                   alt={product.name}
                   className="w-full h-full object-contain transition-transform duration-300"
+                  referrerPolicy="no-referrer"
                 />
                 {images.length > 1 && (
                   <>
@@ -94,7 +95,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                 )}
               </>
             ) : mainImage ? (
-              <img src={mainImage} alt={product.name} className="w-full h-full object-contain" />
+              <img src={mainImage} alt={product.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <Package size={64} className="text-surface-200" />
@@ -114,7 +115,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                       : 'ring-surface-200 opacity-40 hover:opacity-70'
                   }`}
                 >
-                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <img src={url} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 </button>
               ))}
             </div>

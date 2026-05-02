@@ -176,7 +176,7 @@ export default function SolutionsPage() {
                 )}
                 {form.image_url && (
                   <div className="mt-2">
-                    <img src={form.image_url} alt="预览" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                    <img src={form.image_url} alt="预览" className="w-20 h-20 rounded-lg object-cover border border-gray-200" referrerPolicy="no-referrer" />
                   </div>
                 )}
               </div>

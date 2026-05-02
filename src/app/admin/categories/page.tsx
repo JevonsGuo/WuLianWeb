@@ -158,7 +158,7 @@ export default function CategoriesPage() {
                 )}
                 {form.image_url && (
                   <div className="mt-2">
-                    <img src={form.image_url} alt="预览" className="w-20 h-20 rounded-lg object-cover border border-gray-200" />
+                    <img src={form.image_url} alt="预览" className="w-20 h-20 rounded-lg object-cover border border-gray-200" referrerPolicy="no-referrer" />
                   </div>
                 )}
               </div>
@@ -213,7 +213,7 @@ export default function CategoriesPage() {
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{cat.name}</td>
                   <td className="px-6 py-4">
                     {cat.image_url ? (
-                      <img src={cat.image_url} alt="" className="w-10 h-10 rounded object-cover" />
+                      <img src={cat.image_url} alt="" className="w-10 h-10 rounded object-cover" referrerPolicy="no-referrer" />
                     ) : (
                       <span className="text-gray-400 text-sm">无</span>
                     )}

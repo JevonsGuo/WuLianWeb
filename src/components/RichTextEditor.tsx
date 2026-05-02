@@ -31,6 +31,7 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
       TiptapImage.configure({
         inline: false,
         allowBase64: true,
+        HTMLAttributes: { referrerpolicy: 'no-referrer' },
       }),
       Placeholder.configure({ placeholder: placeholder || '请输入内容...' }),
     ],
