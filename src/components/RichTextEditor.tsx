@@ -185,7 +185,7 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
       )}
 
       <EditorContent editor={editor} />
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden' }} />
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
     </div>
   );
 }
