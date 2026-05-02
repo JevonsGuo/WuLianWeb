@@ -34,7 +34,11 @@ export default function ProductsPage() {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('summary');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [pendingAttachments, setPendingAttachments] = useState<Array<{ file_name: string; file_url: string; file_type: string; file_size: number }>>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<Array<{ file_name: string; file_url: string; file_type: string; file_size: number; description: string }>>([]);
+  const [showAttachModal, setShowAttachModal] = useState(false);
+  const [attachModalFile, setAttachModalFile] = useState<File | null>(null);
+  const [attachModalType, setAttachModalType] = useState<string>('other');
+  const [attachModalDesc, setAttachModalDesc] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
@@ -103,69 +107,41 @@ export default function ProductsPage() {
     setForm((f) => ({ ...f, image_urls: f.image_urls.filter((_, i) => i !== index) }));
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string, bucket: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAttachmentUpload = async () => {
+    if (!attachModalFile) return;
     setUploading(true);
     setUploadError('');
+    const isNewProduct = editing?.id === '__new__';
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('bucket', bucket);
+    formData.append('file', attachModalFile);
+    formData.append('bucket', 'product-attachments');
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
       if (data.url) {
-        setForm((f) => ({ ...f, [field]: data.url }));
-      } else {
-        setUploadError(data.error || '上传失败');
-      }
-    } catch {
-      setUploadError('网络错误');
-    }
-    setUploading(false);
-  };
-
-  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    setUploadError('');
-    const isNewProduct = editing?.id === '__new__';
-    for (const file of Array.from(files)) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('bucket', 'product-attachments');
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
-        const data = await res.json();
-        if (data.url) {
-          let fileType = 'other';
-          const nameLower = file.name.toLowerCase();
-          if (nameLower.includes('证书') || nameLower.includes('cert')) fileType = 'certificate';
-          else if (nameLower.includes('手册') || nameLower.includes('manual')) fileType = 'manual';
-          if (isNewProduct) {
-            setPendingAttachments((prev) => [...prev, { file_name: file.name, file_url: data.url, file_type: fileType, file_size: file.size }]);
-          } else {
-            const attRes = await fetch('/api/admin/attachments', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                product_id: editing?.id,
-                file_name: file.name,
-                file_url: data.url,
-                file_type: fileType,
-                file_size: file.size,
-              }),
-            });
-            if (!attRes.ok) {
-              const attData = await attRes.json();
-              setUploadError(attData.error || '附件保存失败');
-            }
+        if (isNewProduct) {
+          setPendingAttachments((prev) => [...prev, { file_name: attachModalFile.name, file_url: data.url, file_type: attachModalType, file_size: attachModalFile.size, description: attachModalDesc }]);
+        } else {
+          const attRes = await fetch('/api/admin/attachments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_id: editing?.id,
+              file_name: attachModalFile.name,
+              file_url: data.url,
+              file_type: attachModalType,
+              file_size: attachModalFile.size,
+              description: attachModalDesc,
+            }),
+          });
+          if (!attRes.ok) {
+            const attData = await attRes.json();
+            setUploadError(attData.error || '附件保存失败');
           }
         }
-      } catch {
-        setUploadError('附件上传失败');
       }
+    } catch {
+      setUploadError('附件上传失败');
     }
     if (!isNewProduct && editing?.id) {
       const res = await fetch(`/api/admin/attachments?product_id=${editing.id}`);
@@ -173,6 +149,10 @@ export default function ProductsPage() {
       setAttachments(attData.data || []);
     }
     setUploading(false);
+    setShowAttachModal(false);
+    setAttachModalFile(null);
+    setAttachModalType('other');
+    setAttachModalDesc('');
   };
 
   const handleDeleteAttachment = async (attId: string) => {
@@ -226,6 +206,7 @@ export default function ProductsPage() {
                 file_url: att.file_url,
                 file_type: att.file_type,
                 file_size: att.file_size,
+                description: att.description,
               }),
             });
           }
@@ -562,7 +543,6 @@ export default function ProductsPage() {
 
               {activeTab === 'attachments' && (
                 <div className="space-y-4">
-                  {/* Existing attachments from database */}
                   {attachments.length > 0 && (
                     <div className="space-y-2">
                       {attachments.map((att) => (
@@ -584,10 +564,11 @@ export default function ProductsPage() {
                                   att.file_type === 'manual' ? 'bg-brand-50 text-brand-600' :
                                   'bg-surface-100 text-surface-500'
                                 }`}>
-                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '附件'}
+                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '其他'}
                                 </span>
                                 {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
                               </div>
+                              {att.description && <p className="text-xs text-surface-400 mt-0.5 truncate">{att.description}</p>}
                             </div>
                           </div>
                           <button
@@ -601,7 +582,6 @@ export default function ProductsPage() {
                     </div>
                   )}
 
-                  {/* Pending attachments (new product, not yet saved) */}
                   {pendingAttachments.length > 0 && (
                     <div className="space-y-2">
                       {pendingAttachments.map((att, idx) => (
@@ -624,10 +604,11 @@ export default function ProductsPage() {
                                   att.file_type === 'manual' ? 'bg-brand-50 text-brand-600' :
                                   'bg-surface-100 text-surface-500'
                                 }`}>
-                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '附件'}
+                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '其他'}
                                 </span>
                                 {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
                               </div>
+                              {att.description && <p className="text-xs text-surface-400 mt-0.5 truncate">{att.description}</p>}
                             </div>
                           </div>
                           <button
@@ -641,69 +622,107 @@ export default function ProductsPage() {
                     </div>
                   )}
 
-                  {/* Upload new attachment */}
                   <button
                     type="button"
                     onClick={() => {
-                      if (uploading) return;
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.multiple = true;
-                      input.accept = '.pdf,.zip,.rar,.jpg,.png';
-                      input.onchange = (e) => {
-                        handleAttachmentUpload(e as unknown as React.ChangeEvent<HTMLInputElement>);
-                        input.remove();
-                      };
-                      document.body.appendChild(input);
-                      input.click();
+                      setAttachModalFile(null);
+                      setAttachModalType('other');
+                      setAttachModalDesc('');
+                      setShowAttachModal(true);
                     }}
                     className="flex items-center space-x-2 px-4 py-3 bg-surface-50 border-2 border-dashed border-surface-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors w-fit"
                   >
                     <Upload size={16} className="text-surface-400" />
-                    <span className="text-sm text-surface-600 font-medium">
-                      {uploading ? '上传中...' : '添加附件'}
-                    </span>
-                    <span className="text-xs text-surface-400">（PDF, ZIP, 图片等）</span>
+                    <span className="text-sm text-surface-600 font-medium">添加附件</span>
                   </button>
+                </div>
+              )}
 
-                  {/* Manual & Certificate URL */}
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-surface-200/60">
-                    {(['manual_url', 'certificate_url'] as const).map((field) => {
-                      const labels = { manual_url: '产品手册 URL', certificate_url: '证书文件 URL' };
-                      const buckets = { manual_url: 'documents', certificate_url: 'documents' };
-                      return (
-                        <div key={field}>
-                          <label className="block text-xs font-medium text-surface-500 mb-1.5">{labels[field]}</label>
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="text"
-                              value={form[field]}
-                              onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-                              placeholder="URL 或上传"
-                              className="flex-1 px-3 py-2 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
-                            />
+              {showAttachModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAttachModal(false)}>
+                  <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="text-lg font-semibold text-surface-900 mb-5">添加附件</h3>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-surface-700 mb-1.5">选择文件</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = '.pdf,.zip,.rar,.jpg,.png,.doc,.docx,.xls,.xlsx';
+                            input.onchange = (e) => {
+                              const f = (e.target as HTMLInputElement).files?.[0];
+                              if (f) setAttachModalFile(f);
+                              input.remove();
+                            };
+                            document.body.appendChild(input);
+                            input.click();
+                          }}
+                          className="w-full flex items-center justify-between px-4 py-2.5 border border-surface-200 rounded-xl text-sm hover:border-brand-400 transition-colors"
+                        >
+                          <span className={attachModalFile ? 'text-surface-800' : 'text-surface-400'}>
+                            {attachModalFile ? attachModalFile.name : '点击选择文件...'}
+                          </span>
+                          <Upload size={16} className="text-surface-400 shrink-0" />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-surface-700 mb-1.5">文件类型</label>
+                        <div className="flex gap-2">
+                          {[
+                            { value: 'manual', label: '手册', icon: <FileText size={14} /> },
+                            { value: 'certificate', label: '证书', icon: <Award size={14} /> },
+                            { value: 'other', label: '其他', icon: <Paperclip size={14} /> },
+                          ].map((opt) => (
                             <button
+                              key={opt.value}
                               type="button"
-                              onClick={() => {
-                                if (uploading) return;
-                                const input = document.createElement('input');
-                                input.type = 'file';
-                                input.accept = '.pdf';
-                                input.onchange = (e) => {
-                                  handleFileUpload(e as unknown as React.ChangeEvent<HTMLInputElement>, field, buckets[field]);
-                                  input.remove();
-                                };
-                                document.body.appendChild(input);
-                                input.click();
-                              }}
-                              className="flex items-center px-2.5 py-2 bg-surface-50 border border-surface-200 rounded-xl cursor-pointer hover:bg-surface-100 shrink-0 transition-colors"
+                              onClick={() => setAttachModalType(opt.value)}
+                              className={`flex-1 flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all ${
+                                attachModalType === opt.value
+                                  ? 'border-brand-400 bg-brand-50 text-brand-700'
+                                  : 'border-surface-200 text-surface-500 hover:border-surface-300'
+                              }`}
                             >
-                              <Upload size={14} className="text-surface-400" />
+                              {opt.icon}
+                              <span>{opt.label}</span>
                             </button>
-                          </div>
+                          ))}
                         </div>
-                      );
-                    })}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-surface-700 mb-1.5">文件描述</label>
+                        <textarea
+                          value={attachModalDesc}
+                          onChange={(e) => setAttachModalDesc(e.target.value)}
+                          placeholder="描述此文件的内容..."
+                          rows={2}
+                          className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowAttachModal(false)}
+                        className="px-4 py-2 text-sm text-surface-600 hover:bg-surface-100 rounded-lg transition-colors"
+                      >
+                        取消
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAttachmentUpload}
+                        disabled={!attachModalFile || uploading}
+                        className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                      >
+                        {uploading ? '上传中...' : '确认上传'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

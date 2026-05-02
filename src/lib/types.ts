@@ -32,6 +32,7 @@ export interface ProductAttachment {
   file_url: string;
   file_type: string; // 'certificate' | 'manual' | 'other'
   file_size: number | null;
+  description: string;
   sort_order: number;
   created_at: string;
 }
