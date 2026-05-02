@@ -396,9 +396,11 @@ export default function ProductsPage() {
                     <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <label className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors cursor-pointer">
+                  <label
+                    htmlFor="carousel-image-upload"
+                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors cursor-pointer"
+                  >
                     <ImagePlus size={18} className="text-surface-400" />
-                    <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
                   </label>
                 )}
               </div>
@@ -573,7 +575,7 @@ export default function ProductsPage() {
                       {uploading ? '上传中...' : '添加附件'}
                     </span>
                     <span className="text-xs text-surface-400">（PDF, ZIP, 图片等）</span>
-                    <input type="file" multiple accept=".pdf,.zip,.rar,.jpg,.png" onChange={handleAttachmentUpload} className="hidden" />
+                    <input type="file" multiple accept=".pdf,.zip,.rar,.jpg,.png" onChange={handleAttachmentUpload} className="sr-only" />
                   </label>
 
                   {/* Manual & Certificate URL */}
@@ -594,7 +596,7 @@ export default function ProductsPage() {
                             />
                             <label className="flex items-center px-2.5 py-2 bg-surface-50 border border-surface-200 rounded-xl cursor-pointer hover:bg-surface-100 shrink-0 transition-colors">
                               <Upload size={14} className="text-surface-400" />
-                              <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="hidden" />
+                              <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="sr-only" />
                             </label>
                           </div>
                         </div>
@@ -613,6 +615,14 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
+        <input
+          id="carousel-image-upload"
+          type="file"
+          name="carousel-image-upload"
+          accept="image/*"
+          onChange={handleUpload}
+          className="sr-only"
+        />
       </div>
     );
   }
