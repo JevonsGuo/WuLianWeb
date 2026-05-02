@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Product, ProductAttachment } from '@/lib/types';
-import { ChevronLeft, ChevronRight, FileText, Award, Paperclip, Download, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Award, Paperclip, Package } from 'lucide-react';
 
 interface ProductDetailProps {
   product: Product;
@@ -203,7 +203,6 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-40">文件名</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-20">大小</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">描述</th>
-                        <th className="text-right px-4 py-2.5 text-xs font-semibold text-surface-500 w-16"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -214,9 +213,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                           </td>
                           <td className="px-4 py-3">
                             <a
-                              href={att.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              href={`/api/download?url=${encodeURIComponent(att.file_url)}&name=${encodeURIComponent(att.file_name)}`}
                               className="text-surface-800 font-medium hover:text-brand-600 transition-colors break-all"
                             >
                               {att.file_name}
@@ -224,16 +221,6 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                           </td>
                           <td className="px-4 py-3 text-surface-400 text-xs">{att.file_size ? formatFileSize(att.file_size) : '-'}</td>
                           <td className="px-4 py-3 text-surface-500 text-sm">{att.description || '-'}</td>
-                          <td className="px-4 py-3 text-right">
-                            <a
-                              href={att.file_url}
-                              download={att.file_name}
-                              className="inline-flex items-center space-x-1 px-3 py-1.5 text-xs text-brand-600 hover:bg-brand-50 rounded-lg transition-colors font-medium"
-                            >
-                              <Download size={12} />
-                              <span>下载</span>
-                            </a>
-                          </td>
                         </tr>
                       ))}
                     </tbody>

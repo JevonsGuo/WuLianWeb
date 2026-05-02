@@ -569,8 +569,7 @@ export default function ProductsPage() {
                         <thead>
                           <tr className="bg-surface-50 border-b border-surface-200/60">
                             <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-10"></th>
-                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">文件名</th>
-                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-24">类型</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-40">文件名</th>
                             <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-20">大小</th>
                             <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">描述</th>
                             <th className="text-right px-4 py-2.5 text-xs font-semibold text-surface-500 w-12"></th>
@@ -585,21 +584,15 @@ export default function ProductsPage() {
                                  <Paperclip size={16} className="text-surface-400" />}
                               </td>
                               <td className="px-4 py-3">
-                                <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-surface-800 font-medium hover:text-brand-600 transition-colors truncate block max-w-[200px]">
+                                <a
+                                  href={`/api/download?url=${encodeURIComponent(att.file_url)}&name=${encodeURIComponent(att.file_name)}`}
+                                  className="text-surface-800 font-medium hover:text-brand-600 transition-colors break-all"
+                                >
                                   {att.file_name}
                                 </a>
                               </td>
-                              <td className="px-4 py-3">
-                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                                  att.file_type === 'certificate' ? 'bg-emerald-50 text-emerald-700' :
-                                  att.file_type === 'manual' ? 'bg-brand-50 text-brand-700' :
-                                  'bg-surface-100 text-surface-600'
-                                }`}>
-                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '其他'}
-                                </span>
-                              </td>
                               <td className="px-4 py-3 text-surface-400 text-xs">{att.file_size ? formatFileSize(att.file_size) : '-'}</td>
-                              <td className="px-4 py-3 text-surface-500 text-xs truncate max-w-[180px]">{att.description || '-'}</td>
+                              <td className="px-4 py-3 text-surface-500 text-sm">{att.description || '-'}</td>
                               <td className="px-4 py-3 text-right">
                                 <button
                                   onClick={() => handleDeleteAttachment(att.id)}
@@ -618,15 +611,10 @@ export default function ProductsPage() {
                                  <Paperclip size={16} className="text-surface-400" />}
                               </td>
                               <td className="px-4 py-3">
-                                <span className="text-surface-800 font-medium truncate block max-w-[200px]">{att.file_name}</span>
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
-                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '其他'}
-                                </span>
+                                <span className="text-surface-800 font-medium break-all">{att.file_name}</span>
                               </td>
                               <td className="px-4 py-3 text-surface-400 text-xs">{att.file_size ? formatFileSize(att.file_size) : '-'}</td>
-                              <td className="px-4 py-3 text-surface-500 text-xs truncate max-w-[180px]">{att.description || '-'}</td>
+                              <td className="px-4 py-3 text-surface-500 text-sm">{att.description || '-'}</td>
                               <td className="px-4 py-3 text-right">
                                 <button
                                   onClick={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== idx))}
