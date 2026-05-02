@@ -200,7 +200,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                     <thead>
                       <tr className="bg-surface-50 border-b border-surface-200/60">
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-10"></th>
-                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-40">文件名</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-60">文件名</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-20">大小</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">描述</th>
                       </tr>
