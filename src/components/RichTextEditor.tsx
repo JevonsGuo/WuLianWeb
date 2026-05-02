@@ -76,41 +76,26 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
     }
   }, [editor]);
 
-  const handleUploadClick = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.position = 'fixed';
-    input.style.top = '-9999px';
-    input.style.left = '-9999px';
-    document.body.appendChild(input);
-
-    input.addEventListener('change', async () => {
-      const file = input.files?.[0];
-      if (!file) {
-        document.body.removeChild(input);
-        return;
+  const handleUploadChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'product-images');
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        editor?.chain().focus().setImage({ src: data.url }).run();
+      } else {
+        alert('上传失败: ' + (data.error || '未知错误') + (data.debug ? ` (${data.debug})` : ''));
       }
-      setUploading(true);
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('bucket', 'product-images');
-      try {
-        const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
-        const data = await res.json();
-        if (res.ok && data.url) {
-          editor?.chain().focus().setImage({ src: data.url }).run();
-        } else {
-          alert('上传失败: ' + (data.error || '未知错误') + (data.debug ? ` (${data.debug})` : ''));
-        }
-      } catch (err) {
-        alert('上传失败: ' + (err instanceof Error ? err.message : '网络错误'));
-      }
-      setUploading(false);
-      document.body.removeChild(input);
-    });
-
-    input.click();
+    } catch (err) {
+      alert('上传失败: ' + (err instanceof Error ? err.message : '网络错误'));
+    }
+    setUploading(false);
+    e.target.value = '';
   }, [editor]);
 
   if (!editor) return null;
@@ -171,9 +156,10 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         <span className="tiptap-divider" />
         <button type="button" onClick={addTable} title="插入表格">⊞ 表格</button>
         <button type="button" onClick={addLink} className={editor.isActive('link') ? 'is-active' : ''} title="插入链接">🔗 链接</button>
-        <button type="button" onClick={handleUploadClick} disabled={uploading} title="上传本地图片">
+        <label className={uploading ? 'tiptap-btn-disabled' : 'tiptap-btn'} title="上传本地图片" style={{ cursor: uploading ? 'not-allowed' : 'pointer' }}>
           {uploading ? '⏳ 上传中...' : '📤 上传图片'}
-        </button>
+          <input type="file" accept="image/*" onChange={handleUploadChange} className="hidden" disabled={uploading} />
+        </label>
         <button type="button" onClick={addImageByUrl} title="输入图片URL链接">🖼 图片链接</button>
         <span className="tiptap-divider" />
         <button type="button" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="清除格式">清除</button>
