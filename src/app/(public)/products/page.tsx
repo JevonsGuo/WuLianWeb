@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ProductCategory, Product, ProductAttachment } from '@/lib/types';
 import CategoryList from '@/components/CategoryList';
@@ -24,6 +24,8 @@ function ProductsContent() {
   const [productsLoading, setProductsLoading] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
   const [productsKey, setProductsKey] = useState(0);
+  const initialProductParam = useRef(productParam);
+  const initialCategoryResolved = useRef(false);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -52,15 +54,23 @@ function ProductsContent() {
     const data: Product[] = result.data || [];
     setProducts(data);
     setProductsLoading(false);
-    if (productParam && data.some((p) => p.model === productParam)) {
-      const matched = data.find((p) => p.model === productParam);
-      if (matched) setSelectedProductId(matched.id);
-    }
-  }, [productParam]);
+    return data;
+  }, []);
 
   useEffect(() => {
     if (selectedCategoryId) fetchProducts(selectedCategoryId);
   }, [selectedCategoryId, fetchProducts]);
+
+  useEffect(() => {
+    if (initialCategoryResolved.current || !selectedCategoryId || productsLoading) return;
+    if (products.length > 0 && initialProductParam.current) {
+      const matched = products.find((p) => p.model === initialProductParam.current);
+      if (matched) {
+        setSelectedProductId(matched.id);
+        initialCategoryResolved.current = true;
+      }
+    }
+  }, [products, selectedCategoryId, productsLoading]);
 
   useEffect(() => {
     if (!selectedProductId) { setAttachments([]); return; }
