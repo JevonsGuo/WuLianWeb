@@ -11,6 +11,7 @@ import { Package, Layers } from 'lucide-react';
 function ProductsContent() {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
+  const productParam = searchParams.get('product');
 
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -43,9 +44,13 @@ function ProductsContent() {
     setProductsLoading(true);
     const res = await fetch(`/api/products?category_id=${categoryId}`);
     const result = await res.json();
-    setProducts(result.data || []);
+    const data = result.data || [];
+    setProducts(data);
     setProductsLoading(false);
-  }, []);
+    if (productParam && data.some((p: Product) => p.id === productParam)) {
+      setSelectedProductId(productParam);
+    }
+  }, [productParam]);
 
   useEffect(() => {
     if (selectedCategoryId) fetchProducts(selectedCategoryId);

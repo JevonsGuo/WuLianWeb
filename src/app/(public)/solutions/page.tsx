@@ -87,7 +87,7 @@ export default async function SolutionsPage() {
                         {relatedProducts.map((product: any) => (
                           <Link
                             key={product.id}
-                            href={`/products?category=${product.category_id || ''}`}
+                            href={`/products?category=${product.category_id || ''}&product=${product.id}`}
                             className="inline-flex items-center px-3.5 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-100 transition-colors duration-200"
                           >
                             {product.name}（{product.model}）
