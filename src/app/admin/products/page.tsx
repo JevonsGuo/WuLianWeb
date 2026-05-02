@@ -122,19 +122,37 @@ export default function ProductsPage() {
         if (isNewProduct) {
           setPendingAttachments((prev) => [...prev, { file_name: attachModalFile.name, file_url: data.url, file_type: attachModalType, file_size: attachModalFile.size, description: attachModalDesc }]);
         } else {
-          const attRes = await fetch('/api/admin/attachments', {
+          const payload: Record<string, unknown> = {
+            product_id: editing?.id,
+            file_name: attachModalFile.name,
+            file_url: data.url,
+            file_type: attachModalType,
+            file_size: attachModalFile.size,
+            description: attachModalDesc,
+          };
+          let attRes = await fetch('/api/admin/attachments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              product_id: editing?.id,
-              file_name: attachModalFile.name,
-              file_url: data.url,
-              file_type: attachModalType,
-              file_size: attachModalFile.size,
-              description: attachModalDesc,
-            }),
+            body: JSON.stringify(payload),
           });
           if (!attRes.ok) {
+            delete payload.description;
+            attRes = await fetch('/api/admin/attachments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+          }
+          if (attRes.ok) {
+            const attData = await attRes.json();
+            if (attData.data) {
+              setAttachments((prev) => [...prev, attData.data]);
+            } else {
+              const listRes = await fetch(`/api/admin/attachments?product_id=${editing!.id}`);
+              const listData = await listRes.json();
+              setAttachments(listData.data || []);
+            }
+          } else {
             const attData = await attRes.json();
             setUploadError(attData.error || '附件保存失败');
           }
@@ -142,11 +160,6 @@ export default function ProductsPage() {
       }
     } catch {
       setUploadError('附件上传失败');
-    }
-    if (!isNewProduct && editing?.id) {
-      const res = await fetch(`/api/admin/attachments?product_id=${editing.id}`);
-      const attData = await res.json();
-      setAttachments(attData.data || []);
     }
     setUploading(false);
     setShowAttachModal(false);
@@ -543,82 +556,82 @@ export default function ProductsPage() {
 
               {activeTab === 'attachments' && (
                 <div className="space-y-4">
-                  {attachments.length > 0 && (
-                    <div className="space-y-2">
-                      {attachments.map((att) => (
-                        <div
-                          key={att.id}
-                          className="flex items-center justify-between p-3.5 bg-surface-50 rounded-xl border border-surface-200/60"
-                        >
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
-                              {att.file_type === 'certificate' ? <Award size={14} className="text-emerald-500" /> :
-                               att.file_type === 'manual' ? <FileText size={14} className="text-brand-500" /> :
-                               <Paperclip size={14} className="text-surface-400" />}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-surface-800 truncate">{att.file_name}</p>
-                              <div className="flex items-center space-x-2 text-xs text-surface-400 mt-0.5">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                  att.file_type === 'certificate' ? 'bg-emerald-50 text-emerald-600' :
-                                  att.file_type === 'manual' ? 'bg-brand-50 text-brand-600' :
-                                  'bg-surface-100 text-surface-500'
+                  {(attachments.length > 0 || pendingAttachments.length > 0) && (
+                    <div className="overflow-hidden rounded-xl border border-surface-200/60">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-surface-50 border-b border-surface-200/60">
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-10"></th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">文件名</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-24">类型</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500 w-20">大小</th>
+                            <th className="text-left px-4 py-2.5 text-xs font-semibold text-surface-500">描述</th>
+                            <th className="text-right px-4 py-2.5 text-xs font-semibold text-surface-500 w-12"></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {attachments.map((att) => (
+                            <tr key={att.id} className="border-b border-surface-100 last:border-b-0 hover:bg-surface-50/50">
+                              <td className="px-4 py-3">
+                                {att.file_type === 'certificate' ? <Award size={16} className="text-emerald-500" /> :
+                                 att.file_type === 'manual' ? <FileText size={16} className="text-brand-500" /> :
+                                 <Paperclip size={16} className="text-surface-400" />}
+                              </td>
+                              <td className="px-4 py-3">
+                                <a href={att.file_url} target="_blank" rel="noopener noreferrer" className="text-surface-800 font-medium hover:text-brand-600 transition-colors truncate block max-w-[200px]">
+                                  {att.file_name}
+                                </a>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                                  att.file_type === 'certificate' ? 'bg-emerald-50 text-emerald-700' :
+                                  att.file_type === 'manual' ? 'bg-brand-50 text-brand-700' :
+                                  'bg-surface-100 text-surface-600'
                                 }`}>
                                   {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '其他'}
                                 </span>
-                                {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
-                              </div>
-                              {att.description && <p className="text-xs text-surface-400 mt-0.5 truncate">{att.description}</p>}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteAttachment(att.id)}
-                            className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {pendingAttachments.length > 0 && (
-                    <div className="space-y-2">
-                      {pendingAttachments.map((att, idx) => (
-                        <div
-                          key={`pending-${idx}`}
-                          className="flex items-center justify-between p-3.5 bg-amber-50 rounded-xl border border-amber-200/60"
-                        >
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
-                              {att.file_type === 'certificate' ? <Award size={14} className="text-emerald-500" /> :
-                               att.file_type === 'manual' ? <FileText size={14} className="text-brand-500" /> :
-                               <Paperclip size={14} className="text-surface-400" />}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium text-surface-800 truncate">{att.file_name}</p>
-                              <div className="flex items-center space-x-2 text-xs text-surface-400 mt-0.5">
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-600">待保存</span>
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                  att.file_type === 'certificate' ? 'bg-emerald-50 text-emerald-600' :
-                                  att.file_type === 'manual' ? 'bg-brand-50 text-brand-600' :
-                                  'bg-surface-100 text-surface-500'
-                                }`}>
+                              </td>
+                              <td className="px-4 py-3 text-surface-400 text-xs">{att.file_size ? formatFileSize(att.file_size) : '-'}</td>
+                              <td className="px-4 py-3 text-surface-500 text-xs truncate max-w-[180px]">{att.description || '-'}</td>
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  onClick={() => handleDeleteAttachment(att.id)}
+                                  className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          {pendingAttachments.map((att, idx) => (
+                            <tr key={`pending-${idx}`} className="border-b border-surface-100 last:border-b-0 bg-amber-50/50">
+                              <td className="px-4 py-3">
+                                {att.file_type === 'certificate' ? <Award size={16} className="text-emerald-500" /> :
+                                 att.file_type === 'manual' ? <FileText size={16} className="text-brand-500" /> :
+                                 <Paperclip size={16} className="text-surface-400" />}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="text-surface-800 font-medium truncate block max-w-[200px]">{att.file_name}</span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">
                                   {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '其他'}
                                 </span>
-                                {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
-                              </div>
-                              {att.description && <p className="text-xs text-surface-400 mt-0.5 truncate">{att.description}</p>}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                            className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
+                              </td>
+                              <td className="px-4 py-3 text-surface-400 text-xs">{att.file_size ? formatFileSize(att.file_size) : '-'}</td>
+                              <td className="px-4 py-3 text-surface-500 text-xs truncate max-w-[180px]">{att.description || '-'}</td>
+                              <td className="px-4 py-3 text-right">
+                                <button
+                                  onClick={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                                  className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
 
