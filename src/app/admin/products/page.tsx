@@ -118,45 +118,52 @@ export default function ProductsPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
-      if (data.url) {
-        if (isNewProduct) {
-          setPendingAttachments((prev) => [...prev, { file_name: attachModalFile.name, file_url: data.url, file_type: attachModalType, file_size: attachModalFile.size, description: attachModalDesc }]);
-        } else {
-          const payload: Record<string, unknown> = {
-            product_id: editing?.id,
-            file_name: attachModalFile.name,
-            file_url: data.url,
-            file_type: attachModalType,
-            file_size: attachModalFile.size,
-            description: attachModalDesc,
-          };
-          let attRes = await fetch('/api/admin/attachments', {
+      if (!res.ok || !data.url) {
+        setUploadError(data.error || '文件上传失败');
+        setUploading(false);
+        setShowAttachModal(false);
+        setAttachModalFile(null);
+        setAttachModalType('other');
+        setAttachModalDesc('');
+        return;
+      }
+      if (isNewProduct) {
+        setPendingAttachments((prev) => [...prev, { file_name: attachModalFile.name, file_url: data.url, file_type: attachModalType, file_size: attachModalFile.size, description: attachModalDesc }]);
+      } else {
+        const payload: Record<string, unknown> = {
+          product_id: editing?.id,
+          file_name: attachModalFile.name,
+          file_url: data.url,
+          file_type: attachModalType,
+          file_size: attachModalFile.size,
+          description: attachModalDesc || '',
+        };
+        let attRes = await fetch('/api/admin/attachments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!attRes.ok) {
+          delete payload.description;
+          attRes = await fetch('/api/admin/attachments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
-          if (!attRes.ok) {
-            delete payload.description;
-            attRes = await fetch('/api/admin/attachments', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-          }
-          if (attRes.ok) {
-            const attData = await attRes.json();
-            if (attData.data) {
-              setAttachments((prev) => [...prev, attData.data]);
-            } else {
-              const listRes = await fetch(`/api/admin/attachments?product_id=${editing!.id}`);
-              const listData = await listRes.json();
-              setAttachments(listData.data || []);
-            }
-          } else {
-            const attData = await attRes.json();
-            setUploadError(attData.error || '附件保存失败');
-          }
         }
+        if (!attRes.ok) {
+          const attData = await attRes.json();
+          setUploadError(attData.error || '附件保存失败');
+          setUploading(false);
+          setShowAttachModal(false);
+          setAttachModalFile(null);
+          setAttachModalType('other');
+          setAttachModalDesc('');
+          return;
+        }
+        const listRes = await fetch(`/api/admin/attachments?product_id=${editing!.id}`);
+        const listData = await listRes.json();
+        setAttachments(listData.data || []);
       }
     } catch {
       setUploadError('附件上传失败');
