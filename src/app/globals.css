@@ -93,9 +93,6 @@ body {
 .overflow-y-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 .overflow-y-auto::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
 /* ===== Glassmorphism utility ===== */
 .glass {
   background: rgba(255, 255, 255, 0.8);
@@ -117,11 +114,21 @@ body {
   background-size: 24px 24px;
 }
 
-/* ===== Mobile responsive ===== */
+/* ===== Mobile responsive for three-column layout ===== */
 @media (max-width: 768px) {
   .products-page-wrapper {
     height: auto !important;
     min-height: calc(100vh - 64px);
+  }
+  .three-column-layout {
+    flex-direction: column;
+    height: auto !important;
+  }
+  .three-column-layout > div {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e2e8f0;
+    max-height: 50vh;
   }
 }
 
