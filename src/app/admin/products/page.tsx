@@ -68,13 +68,13 @@ export default function ProductsPage() {
     try {
       const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
       const data = await res.json();
-      if (data.url) {
+      if (res.ok && data.url) {
         setForm((f) => ({ ...f, image_urls: [...f.image_urls, data.url] }));
       } else {
-        setUploadError(data.error || '上传失败');
+        setUploadError(data.error || '上传失败' + (data.debug ? ` (${data.debug})` : ''));
       }
-    } catch {
-      setUploadError('网络错误');
+    } catch (err) {
+      setUploadError('网络错误: ' + (err instanceof Error ? err.message : String(err)));
     }
     setUploading(false);
     e.target.value = '';

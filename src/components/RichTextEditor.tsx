@@ -98,13 +98,13 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
       try {
         const res = await fetch('/api/upload', { method: 'POST', body: formData, credentials: 'include' });
         const data = await res.json();
-        if (data.url) {
+        if (res.ok && data.url) {
           editor?.chain().focus().setImage({ src: data.url }).run();
         } else {
-          alert(data.error || '上传失败');
+          alert('上传失败: ' + (data.error || '未知错误') + (data.debug ? ` (${data.debug})` : ''));
         }
-      } catch {
-        alert('上传失败，请检查网络');
+      } catch (err) {
+        alert('上传失败: ' + (err instanceof Error ? err.message : '网络错误'));
       }
       setUploading(false);
       document.body.removeChild(input);
