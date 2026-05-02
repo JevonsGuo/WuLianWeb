@@ -76,8 +76,20 @@ export default function ProductsPage() {
       setUploadError('网络错误: ' + (err instanceof Error ? err.message : String(err)));
     }
     setUploading(false);
-    e.target.value = '';
   };
+
+  const handleCarouselUploadClick = useCallback(() => {
+    if (uploading) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      handleUpload(e as unknown as React.ChangeEvent<HTMLInputElement>);
+      input.remove();
+    };
+    document.body.appendChild(input);
+    input.click();
+  }, [uploading, handleUpload]);
 
   const handleAddImageUrl = () => {
     const url = imageUrlInput.trim();
@@ -396,12 +408,13 @@ export default function ProductsPage() {
                     <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <label
-                    htmlFor="carousel-image-upload"
-                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={handleCarouselUploadClick}
+                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors"
                   >
                     <ImagePlus size={18} className="text-surface-400" />
-                  </label>
+                  </button>
                 )}
               </div>
 
@@ -569,14 +582,29 @@ export default function ProductsPage() {
                   )}
 
                   {/* Upload new attachment */}
-                  <label className="flex items-center space-x-2 px-4 py-3 bg-surface-50 border-2 border-dashed border-surface-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors w-fit">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (uploading) return;
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.multiple = true;
+                      input.accept = '.pdf,.zip,.rar,.jpg,.png';
+                      input.onchange = (e) => {
+                        handleAttachmentUpload(e as unknown as React.ChangeEvent<HTMLInputElement>);
+                        input.remove();
+                      };
+                      document.body.appendChild(input);
+                      input.click();
+                    }}
+                    className="flex items-center space-x-2 px-4 py-3 bg-surface-50 border-2 border-dashed border-surface-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-colors w-fit"
+                  >
                     <Upload size={16} className="text-surface-400" />
                     <span className="text-sm text-surface-600 font-medium">
                       {uploading ? '上传中...' : '添加附件'}
                     </span>
                     <span className="text-xs text-surface-400">（PDF, ZIP, 图片等）</span>
-                    <input type="file" multiple accept=".pdf,.zip,.rar,.jpg,.png" onChange={handleAttachmentUpload} className="sr-only" />
-                  </label>
+                  </button>
 
                   {/* Manual & Certificate URL */}
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-surface-200/60">
@@ -594,10 +622,24 @@ export default function ProductsPage() {
                               placeholder="URL 或上传"
                               className="flex-1 px-3 py-2 border border-surface-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-shadow"
                             />
-                            <label className="flex items-center px-2.5 py-2 bg-surface-50 border border-surface-200 rounded-xl cursor-pointer hover:bg-surface-100 shrink-0 transition-colors">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (uploading) return;
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = '.pdf';
+                                input.onchange = (e) => {
+                                  handleFileUpload(e as unknown as React.ChangeEvent<HTMLInputElement>, field, buckets[field]);
+                                  input.remove();
+                                };
+                                document.body.appendChild(input);
+                                input.click();
+                              }}
+                              className="flex items-center px-2.5 py-2 bg-surface-50 border border-surface-200 rounded-xl cursor-pointer hover:bg-surface-100 shrink-0 transition-colors"
+                            >
                               <Upload size={14} className="text-surface-400" />
-                              <input type="file" accept=".pdf" onChange={(e) => handleFileUpload(e, field, buckets[field])} className="sr-only" />
-                            </label>
+                            </button>
                           </div>
                         </div>
                       );
@@ -615,14 +657,6 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
-        <input
-          id="carousel-image-upload"
-          type="file"
-          name="carousel-image-upload"
-          accept="image/*"
-          onChange={handleUpload}
-          className="sr-only"
-        />
       </div>
     );
   }
