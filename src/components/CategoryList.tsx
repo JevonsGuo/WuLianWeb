@@ -1,16 +1,18 @@
 'use client';
 
 import { ProductCategory } from '@/lib/types';
+import { Search } from 'lucide-react';
 
 interface CategoryListProps {
   categories: ProductCategory[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  disabled?: boolean;
 }
 
-export default function CategoryList({ categories, selectedId, onSelect }: CategoryListProps) {
+export default function CategoryList({ categories, selectedId, onSelect, disabled }: CategoryListProps) {
   return (
-    <div className="h-full flex flex-col bg-surface-50/50">
+    <div className="h-full flex flex-col bg-surface-50/50 relative">
       <div className="px-5 py-4 border-b border-surface-200/60">
         <h2 className="text-xs font-semibold text-surface-400 uppercase tracking-widest">
           产品大类
@@ -60,6 +62,14 @@ export default function CategoryList({ categories, selectedId, onSelect }: Categ
           );
         })}
       </div>
+      {disabled && (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center pointer-events-none">
+          <div className="flex items-center space-x-2 px-4 py-2 bg-white/90 rounded-xl shadow-sm">
+            <Search size={14} className="text-brand-500" />
+            <span className="text-sm font-medium text-surface-600">搜索模式</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
