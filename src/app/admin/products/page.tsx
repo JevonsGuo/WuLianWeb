@@ -617,6 +617,7 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
+        <input ref={imageInputRef} type="file" accept="image/*" onChange={handleUpload} style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden' }} />
       </div>
     );
   }
@@ -725,7 +726,6 @@ export default function ProductsPage() {
           })}
         </div>
       )}
-      <input ref={imageInputRef} type="file" accept="image/*" onChange={handleUpload} style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden' }} />
     </div>
   );
 }
