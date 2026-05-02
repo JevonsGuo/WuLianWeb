@@ -6,7 +6,7 @@ import { TableKit } from '@tiptap/extension-table';
 import { Link } from '@tiptap/extension-link';
 import { Image as TiptapImage } from '@tiptap/extension-image';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface RichTextEditorProps {
   value: string;
@@ -17,7 +17,6 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({ value, onChange, placeholder, style }: RichTextEditorProps) {
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -78,10 +77,6 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
       }
     }
   }, [editor]);
-
-  const handleUploadClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -163,9 +158,10 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         <span className="tiptap-divider" />
         <button type="button" onClick={addTable} title="插入表格">⊞ 表格</button>
         <button type="button" onClick={addLink} className={editor.isActive('link') ? 'is-active' : ''} title="插入链接">🔗 链接</button>
-        <button type="button" onClick={handleUploadClick} disabled={uploading} title="上传本地图片">
+        <label htmlFor="rte-image-upload" className={uploading ? 'opacity-50 pointer-events-none' : ''} title="上传本地图片">
           {uploading ? '⏳ 上传中...' : '📤 上传图片'}
-        </button>
+        </label>
+        <input id="rte-image-upload" type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
         <button type="button" onClick={addImageByUrl} title="输入图片URL链接">🖼 图片链接</button>
         <span className="tiptap-divider" />
         <button type="button" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="清除格式">清除</button>
@@ -186,7 +182,6 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
       )}
 
       <EditorContent editor={editor} />
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
     </div>
   );
 }

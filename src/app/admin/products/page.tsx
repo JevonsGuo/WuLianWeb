@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
 import {
   Plus, Pencil, Trash2, Upload, AlertCircle, X,
@@ -34,7 +34,6 @@ export default function ProductsPage() {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('summary');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const carouselInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -397,16 +396,15 @@ export default function ProductsPage() {
                     <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => carouselInputRef.current?.click()}
-                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors"
+                  <label
+                    htmlFor="carousel-image-upload"
+                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors cursor-pointer"
                   >
                     <ImagePlus size={18} className="text-surface-400" />
-                  </button>
+                  </label>
                 )}
                 <input
-                  ref={carouselInputRef}
+                  id="carousel-image-upload"
                   type="file"
                   accept="image/*"
                   onChange={handleUpload}
