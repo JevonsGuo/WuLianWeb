@@ -396,20 +396,11 @@ export default function ProductsPage() {
                     <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <label
-                    htmlFor="carousel-image-upload"
-                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors cursor-pointer"
-                  >
+                  <label className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center hover:border-brand-400 hover:bg-brand-50/30 transition-colors cursor-pointer">
                     <ImagePlus size={18} className="text-surface-400" />
+                    <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
                   </label>
                 )}
-                <input
-                  id="carousel-image-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleUpload}
-                  className="sr-only"
-                />
               </div>
 
               {/* URL input */}

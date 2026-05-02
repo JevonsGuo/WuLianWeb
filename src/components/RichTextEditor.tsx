@@ -158,10 +158,10 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         <span className="tiptap-divider" />
         <button type="button" onClick={addTable} title="插入表格">⊞ 表格</button>
         <button type="button" onClick={addLink} className={editor.isActive('link') ? 'is-active' : ''} title="插入链接">🔗 链接</button>
-        <label htmlFor="rte-image-upload" className={uploading ? 'opacity-50 pointer-events-none' : ''} title="上传本地图片">
+        <label className={uploading ? 'opacity-50 pointer-events-none' : ''} title="上传本地图片">
           {uploading ? '⏳ 上传中...' : '📤 上传图片'}
+          <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
         </label>
-        <input id="rte-image-upload" type="file" accept="image/*" onChange={handleFileChange} className="sr-only" />
         <button type="button" onClick={addImageByUrl} title="输入图片URL链接">🖼 图片链接</button>
         <span className="tiptap-divider" />
         <button type="button" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="清除格式">清除</button>
