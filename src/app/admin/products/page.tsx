@@ -5,7 +5,7 @@ import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
 import {
   Plus, Pencil, Trash2, Upload, AlertCircle, X,
   FileText, Award, Paperclip, Package, Save,
-  ChevronLeft, ImagePlus, Link2
+  ChevronLeft, ImagePlus, Link2, ExternalLink
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -815,7 +815,17 @@ export default function ProductsPage() {
                       <Package size={32} className="text-surface-200" />
                     </div>
                   )}
-
+                  <a
+                    href={`/products?category=${categories.find((c) => c.id === p.category_id)?.slug || ''}&product=${p.model || ''}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  >
+                    <span className="flex items-center space-x-1.5 px-3 py-1.5 bg-white/90 rounded-lg text-sm font-medium text-surface-700 shadow-sm">
+                      <ExternalLink size={14} />
+                      <span>打开产品前台页面</span>
+                    </span>
+                  </a>
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between">
