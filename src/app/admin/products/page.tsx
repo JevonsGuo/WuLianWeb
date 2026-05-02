@@ -5,7 +5,7 @@ import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
 import {
   Plus, Pencil, Trash2, Upload, AlertCircle, X,
   FileText, Award, Paperclip, Package, Save,
-  ChevronLeft, ImagePlus, Link2, ExternalLink
+  ChevronLeft, ImagePlus, Link2, ExternalLink, Search
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -17,6 +17,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({
@@ -57,9 +58,14 @@ export default function ProductsPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const filteredProducts = filterCategory === 'all'
+  const filteredProducts = (filterCategory === 'all'
     ? products
-    : products.filter((p) => p.category_id === filterCategory);
+    : products.filter((p) => p.category_id === filterCategory)
+  ).filter((p) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.trim().toLowerCase();
+    return p.name.toLowerCase().includes(q) || p.model.toLowerCase().includes(q);
+  });
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -779,7 +785,17 @@ export default function ProductsPage() {
       </div>
 
       {/* Filter */}
-      <div>
+      <div className="flex items-center space-x-3">
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-300" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索产品名称或型号..."
+            className="pl-9 pr-4 py-2 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500/30 outline-none bg-white w-64"
+          />
+        </div>
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}

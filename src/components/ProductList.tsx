@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Product } from '@/lib/types';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, Search } from 'lucide-react';
 
 interface ProductListProps {
   products: Product[];
@@ -11,12 +12,33 @@ interface ProductListProps {
 }
 
 export default function ProductList({ products, selectedId, onSelect, loading }: ProductListProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredProducts = searchQuery.trim()
+    ? products.filter((p) => {
+        const q = searchQuery.trim().toLowerCase();
+        return p.name.toLowerCase().includes(q) || p.model.toLowerCase().includes(q);
+      })
+    : products;
+
   return (
     <div className="h-full flex flex-col bg-white">
       <div className="px-5 py-4 border-b border-surface-200/60">
         <h2 className="text-xs font-semibold text-surface-400 uppercase tracking-widest">
           产品列表
         </h2>
+      </div>
+      <div className="px-3 py-2.5 border-b border-surface-100">
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-surface-300" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索名称或型号..."
+            className="w-full pl-8 pr-3 py-1.5 border border-surface-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 bg-white"
+          />
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto p-2.5">
         {loading ? (
@@ -26,15 +48,15 @@ export default function ProductList({ products, selectedId, onSelect, loading }:
             </div>
             <p className="text-sm text-surface-400">加载中...</p>
           </div>
-        ) : products.length === 0 ? (
+        ) : filteredProducts.length === 0 ? (
           <div className="px-4 py-16 text-center">
             <div className="w-12 h-12 bg-surface-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <ImageIcon size={20} className="text-surface-300" />
             </div>
-            <p className="text-sm text-surface-400">暂无产品</p>
+            <p className="text-sm text-surface-400">{searchQuery.trim() ? '未找到匹配产品' : '暂无产品'}</p>
           </div>
         ) : (
-          products.map((product) => {
+          filteredProducts.map((product) => {
             const thumb = product.image_urls?.[0] || product.main_image_url;
             const isSelected = selectedId === product.id;
             return (
