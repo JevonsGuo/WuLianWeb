@@ -22,12 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '无效的 bucket' }, { status: 400 });
     }
 
-    const ext = file.name.includes('.') ? '.' + file.name.split('.').pop() : '';
-    const baseName = file.name.includes('.') ? file.name.slice(0, file.name.lastIndexOf('.')) : file.name;
-    const safeBase = baseName.replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, '_');
-    const safeName = ext ? `${safeBase}${ext}` : safeBase;
-    const folder = `${Date.now()}`;
-    const filePath = `${folder}/${safeName}`;
+    const ext = file.name.includes('.') ? '.' + file.name.split('.').pop()! : '';
+    const asciiName = file.name.replace(/[^\x00-\x7F]/g, '_');
+    const safeName = asciiName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filePath = `${Date.now()}-${safeName || 'file'}${ext && !safeName.includes('.') ? ext : ''}`;
 
     const { data, error } = await supabaseAdmin.storage
       .from(bucket)
