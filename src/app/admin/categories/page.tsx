@@ -9,7 +9,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<ProductCategory | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', image_url: '', sort_order: 0 });
+  const [form, setForm] = useState({ name: '', slug: '', image_url: '', sort_order: 0 });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -50,7 +50,7 @@ export default function CategoriesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = { name: form.name, image_url: form.image_url, sort_order: form.sort_order };
+      const payload = { name: form.name, slug: form.slug || undefined, image_url: form.image_url, sort_order: form.sort_order };
       let res: Response;
       if (editing) {
         res = await fetch('/api/admin/categories', {
@@ -71,7 +71,7 @@ export default function CategoriesPage() {
       } else {
         setShowForm(false);
         setEditing(null);
-        setForm({ name: '', image_url: '', sort_order: 0 });
+        setForm({ name: '', slug: '', image_url: '', sort_order: 0 });
         fetchCategories();
       }
     } catch {
@@ -82,7 +82,7 @@ export default function CategoriesPage() {
 
   const handleEdit = (cat: ProductCategory) => {
     setEditing(cat);
-    setForm({ name: cat.name, image_url: cat.image_url || '', sort_order: cat.sort_order });
+    setForm({ name: cat.name, slug: cat.slug || '', image_url: cat.image_url || '', sort_order: cat.sort_order });
     setUploadError('');
     setShowForm(true);
   };
@@ -108,7 +108,7 @@ export default function CategoriesPage() {
         <button
           onClick={() => {
             setEditing(null);
-            setForm({ name: '', image_url: '', sort_order: 0 });
+            setForm({ name: '', slug: '', image_url: '', sort_order: 0 });
             setUploadError('');
             setShowForm(true);
           }}
@@ -133,6 +133,17 @@ export default function CategoriesPage() {
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                <input
+                  type="text"
+                  value={form.slug}
+                  onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.replace(/[^a-z0-9-]/g, '') }))}
+                  placeholder="留空则根据名称自动生成拼音"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <p className="mt-1 text-xs text-gray-400">用于 URL，如 gong-ye-chu-gan-qi。留空保存时自动生成</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">图片</label>
