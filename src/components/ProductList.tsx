@@ -56,11 +56,7 @@ export default function ProductList({ products, selectedId, onSelect, loading }:
                         isSelected ? 'ring-brand-200' : 'ring-surface-200'
                       }`}
                     />
-                    {(product.image_urls?.length || 0) > 1 && (
-                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-brand-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
-                        {product.image_urls.length}
-                      </span>
-                    )}
+
                   </div>
                 ) : (
                   <div

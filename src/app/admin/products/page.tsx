@@ -799,7 +799,7 @@ export default function ProductsPage() {
           <p>暂无产品</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {filteredProducts.map((p) => {
             const thumb = p.image_urls?.[0] || p.main_image_url;
             return (
@@ -815,11 +815,7 @@ export default function ProductsPage() {
                       <Package size={32} className="text-surface-200" />
                     </div>
                   )}
-                  {(p.image_urls?.length || 0) > 1 && (
-                    <span className="absolute top-2.5 right-2.5 px-2 py-0.5 bg-white/90 backdrop-blur-sm text-brand-600 text-xs font-medium rounded-lg shadow-sm">
-                      {p.image_urls.length} 张图
-                    </span>
-                  )}
+
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between">
