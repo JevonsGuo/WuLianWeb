@@ -26,23 +26,23 @@ export default function Header() {
     <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'glass border-b border-surface-200/60 shadow-sm'
-          : 'bg-white/95 border-b border-transparent'
+          ? 'bg-surface-900/95 backdrop-blur-md shadow-lg'
+          : 'bg-surface-900'
       }`}
     >
+      <div className="h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center space-x-2.5 group">
-            <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-glow transition-shadow duration-300">
+            <div className="w-9 h-9 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-glow transition-shadow duration-300">
               <span className="text-white font-bold text-sm">物</span>
             </div>
-            <span className="text-xl font-bold text-surface-900 tracking-tight">
+            <span className="text-xl font-bold text-white tracking-tight">
               物联智造
             </span>
           </Link>
 
-          {/* Desktop nav */}
           <nav className="hidden md:flex items-center space-x-1">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -52,29 +52,27 @@ export default function Header() {
                   href={link.href}
                   className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     isActive
-                      ? 'text-brand-600 bg-brand-50'
-                      : 'text-surface-600 hover:text-surface-900 hover:bg-surface-50'
+                      ? 'text-brand-300 bg-brand-500/10'
+                      : 'text-surface-300 hover:text-white hover:bg-surface-800'
                   }`}
                 >
                   {link.label}
                   {isActive && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-brand-500 rounded-full" />
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-brand-400 rounded-full" />
                   )}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 rounded-lg hover:bg-surface-50 transition-colors"
+            className="md:hidden p-2 rounded-lg hover:bg-surface-800 transition-colors text-surface-300"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
 
-        {/* Mobile nav */}
         {mobileMenuOpen && (
           <div className="md:hidden pb-4 animate-fade-in">
             {navLinks.map((link) => (
@@ -83,8 +81,8 @@ export default function Header() {
                 href={link.href}
                 className={`block py-2.5 px-3 rounded-lg text-sm font-medium transition-colors ${
                   pathname === link.href
-                    ? 'text-brand-600 bg-brand-50'
-                    : 'text-surface-600 hover:bg-surface-50'
+                    ? 'text-brand-300 bg-brand-500/10'
+                    : 'text-surface-300 hover:bg-surface-800 hover:text-white'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
