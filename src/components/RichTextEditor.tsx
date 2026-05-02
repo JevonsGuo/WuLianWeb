@@ -6,7 +6,7 @@ import { TableKit } from '@tiptap/extension-table';
 import { Link } from '@tiptap/extension-link';
 import { Image } from '@tiptap/extension-image';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 interface RichTextEditorProps {
   value: string;
@@ -16,6 +16,8 @@ interface RichTextEditorProps {
 }
 
 export default function RichTextEditor({ value, onChange, placeholder, style }: RichTextEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -58,12 +60,33 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
     }
   }, [editor]);
 
-  const addImage = useCallback(() => {
+  const addImageByUrl = useCallback(() => {
     const url = window.prompt('输入图片地址:');
     if (url) {
       editor?.chain().focus().setImage({ src: url }).run();
     }
   }, [editor]);
+
+  const uploadImage = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'product-images');
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        editor?.chain().focus().setImage({ src: data.url }).run();
+      }
+    } catch {}
+  }, [editor]);
+
+  const handleImageFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadImage(file);
+    }
+    e.target.value = '';
+  }, [uploadImage]);
 
   if (!editor) return null;
 
@@ -123,10 +146,19 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         <span className="tiptap-divider" />
         <button type="button" onClick={addTable} title="插入表格">⊞ 表格</button>
         <button type="button" onClick={addLink} className={editor.isActive('link') ? 'is-active' : ''} title="插入链接">🔗 链接</button>
-        <button type="button" onClick={addImage} title="插入图片">🖼 图片</button>
+        <button type="button" onClick={() => fileInputRef.current?.click()} title="上传图片">📤 上传图片</button>
+        <button type="button" onClick={addImageByUrl} title="图片URL">🖼 图片链接</button>
         <span className="tiptap-divider" />
         <button type="button" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="清除格式">清除</button>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageFileChange}
+        className="hidden"
+      />
 
       {editor.isActive('table') && (
         <div className="tiptap-table-toolbar">
