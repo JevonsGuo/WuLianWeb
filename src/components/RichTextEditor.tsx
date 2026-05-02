@@ -6,7 +6,7 @@ import { TableKit } from '@tiptap/extension-table';
 import { Link } from '@tiptap/extension-link';
 import { Image as TiptapImage } from '@tiptap/extension-image';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface RichTextEditorProps {
   value: string;
@@ -17,8 +17,10 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({ value, onChange, placeholder, style }: RichTextEditorProps) {
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -76,7 +78,11 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
     }
   }, [editor]);
 
-  const handleUploadChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -156,10 +162,9 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
         <span className="tiptap-divider" />
         <button type="button" onClick={addTable} title="插入表格">⊞ 表格</button>
         <button type="button" onClick={addLink} className={editor.isActive('link') ? 'is-active' : ''} title="插入链接">🔗 链接</button>
-        <label className={uploading ? 'tiptap-btn-disabled' : 'tiptap-btn'} title="上传本地图片" style={{ cursor: uploading ? 'not-allowed' : 'pointer' }}>
+        <button type="button" onClick={handleUploadClick} disabled={uploading} title="上传本地图片">
           {uploading ? '⏳ 上传中...' : '📤 上传图片'}
-          <input type="file" accept="image/*" onChange={handleUploadChange} className="hidden" disabled={uploading} />
-        </label>
+        </button>
         <button type="button" onClick={addImageByUrl} title="输入图片URL链接">🖼 图片链接</button>
         <span className="tiptap-divider" />
         <button type="button" onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} title="清除格式">清除</button>
@@ -180,6 +185,7 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
       )}
 
       <EditorContent editor={editor} />
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden' }} />
     </div>
   );
 }
