@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Product, ProductCategory, ProductAttachment } from '@/lib/types';
 import {
   Plus, Pencil, Trash2, Upload, AlertCircle, X,
@@ -34,7 +34,6 @@ export default function ProductsPage() {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('summary');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -397,13 +396,10 @@ export default function ProductsPage() {
                     <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors"
-                  >
+                  <label className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-surface-300 flex items-center justify-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
                     <ImagePlus size={18} className="text-surface-400" />
-                  </button>
+                    <input type="file" accept="image/*" onChange={handleUpload} className="sr-only" />
+                  </label>
                 )}
               </div>
 
@@ -617,7 +613,6 @@ export default function ProductsPage() {
             </div>
           </div>
         </div>
-        <input ref={imageInputRef} type="file" accept="image/*" onChange={handleUpload} style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden' }} />
       </div>
     );
   }
