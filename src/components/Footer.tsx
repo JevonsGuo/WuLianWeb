@@ -28,6 +28,7 @@ export default function Footer() {
               <li><a href="/" className="hover:text-brand-300 transition-colors duration-200">首页</a></li>
               <li><a href="/products" className="hover:text-brand-300 transition-colors duration-200">产品中心</a></li>
               <li><a href="/solutions" className="hover:text-brand-300 transition-colors duration-200">解决方案</a></li>
+              <li><a href="/contact" className="hover:text-brand-300 transition-colors duration-200">联系我们</a></li>
             </ul>
           </div>
 

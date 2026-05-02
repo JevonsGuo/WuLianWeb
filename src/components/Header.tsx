@@ -9,6 +9,7 @@ const navLinks = [
   { href: '/', label: '首页' },
   { href: '/products', label: '产品中心' },
   { href: '/solutions', label: '解决方案' },
+  { href: '/contact', label: '联系我们' },
 ];
 
 export default function Header() {
