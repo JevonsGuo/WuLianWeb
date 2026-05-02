@@ -27,12 +27,15 @@ function ProductsContent() {
     async function fetchCategories() {
       const res = await fetch('/api/categories');
       const result = await res.json();
-      const data = result.data || [];
+      const data: ProductCategory[] = result.data || [];
       if (data.length > 0) {
         setCategories(data);
         if (categoryParam) {
-          setSelectedCategoryId(categoryParam);
-          setShowProducts(true);
+          const match = data.find((c) => c.slug === categoryParam);
+          if (match) {
+            setSelectedCategoryId(match.id);
+            setShowProducts(true);
+          }
         }
       }
       setLoading(false);
@@ -44,11 +47,12 @@ function ProductsContent() {
     setProductsLoading(true);
     const res = await fetch(`/api/products?category_id=${categoryId}`);
     const result = await res.json();
-    const data = result.data || [];
+    const data: Product[] = result.data || [];
     setProducts(data);
     setProductsLoading(false);
-    if (productParam && data.some((p: Product) => p.id === productParam)) {
-      setSelectedProductId(productParam);
+    if (productParam && data.some((p) => p.model === productParam)) {
+      const matched = data.find((p) => p.model === productParam);
+      if (matched) setSelectedProductId(matched.id);
     }
   }, [productParam]);
 

@@ -5,18 +5,21 @@ import { ArrowRight } from 'lucide-react';
 export const revalidate = 30;
 
 async function getSolutions() {
-  const [solutionsRes, productsRes] = await Promise.all([
+  const [solutionsRes, productsRes, categoriesRes] = await Promise.all([
     supabaseAdmin.from('solutions').select('*').order('sort_order'),
     supabaseAdmin.from('products').select('id, name, model, category_id'),
+    supabaseAdmin.from('product_categories').select('id, slug'),
   ]);
+  const categoriesMap = new Map((categoriesRes.data || []).map((c: any) => [c.id, c.slug]));
   return {
     solutions: solutionsRes.data || [],
     productsMap: new Map((productsRes.data || []).map((p: any) => [p.id, p])),
+    categoriesMap,
   };
 }
 
 export default async function SolutionsPage() {
-  const { solutions, productsMap } = await getSolutions();
+  const { solutions, productsMap, categoriesMap } = await getSolutions();
 
   return (
     <>
@@ -87,7 +90,7 @@ export default async function SolutionsPage() {
                         {relatedProducts.map((product: any) => (
                           <Link
                             key={product.id}
-                            href={`/products?category=${product.category_id || ''}&product=${product.id}`}
+                            href={`/products?category=${categoriesMap.get(product.category_id) || ''}&product=${product.model}`}
                             className="inline-flex items-center px-3.5 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-100 transition-colors duration-200"
                           >
                             {product.name}（{product.model}）

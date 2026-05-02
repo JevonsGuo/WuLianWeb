@@ -197,6 +197,7 @@ export default function CategoriesPage() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">名称</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Slug</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">图片</th>
               <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">排序</th>
               <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">操作</th>
@@ -204,13 +205,14 @@ export default function CategoriesPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">加载中...</td></tr>
+              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">加载中...</td></tr>
             ) : categories.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">暂无数据</td></tr>
+              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">暂无数据</td></tr>
             ) : (
               categories.map((cat) => (
                 <tr key={cat.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{cat.name}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 font-mono">{cat.slug || '-'}</td>
                   <td className="px-6 py-4">
                     {cat.image_url ? (
                       <img src={cat.image_url} alt="" className="w-10 h-10 rounded object-cover" referrerPolicy="no-referrer" />
