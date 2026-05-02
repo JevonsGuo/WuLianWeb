@@ -52,10 +52,9 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
   return (
     <div className="h-full flex flex-col overflow-hidden animate-fade-in">
       {/* Top: Image + Info */}
-      <div className="flex gap-8 p-8 border-b border-surface-100">
-        {/* Image area */}
+      <div className="flex gap-6 p-6 border-b border-surface-100">
         <div className="shrink-0">
-          <div className="w-[300px] h-[300px] bg-surface-50 rounded-2xl overflow-hidden relative group ring-1 ring-surface-200/60">
+          <div className="w-[220px] h-[220px] bg-surface-50 rounded-2xl overflow-hidden relative group ring-1 ring-surface-200/60">
             {images.length > 0 ? (
               <>
                 <img
@@ -109,7 +108,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
                 <button
                   key={idx}
                   onClick={() => setCurrentImageIndex(idx)}
-                  className={`shrink-0 w-14 h-14 rounded-xl overflow-hidden ring-2 transition-all duration-200 ${
+                  className={`shrink-0 w-11 h-11 rounded-lg overflow-hidden ring-2 transition-all duration-200 ${
                     idx === currentImageIndex
                       ? 'ring-brand-400 shadow-sm'
                       : 'ring-surface-200 opacity-40 hover:opacity-70'
@@ -123,8 +122,8 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
         </div>
 
         {/* Basic info */}
-        <div className="flex-1 min-w-0 pt-1">
-          <h1 className="text-2xl font-bold text-surface-900 tracking-tight">{product.name}</h1>
+        <div className="flex-1 min-w-0 pt-0">
+          <h1 className="text-xl font-bold text-surface-900 tracking-tight">{product.name}</h1>
           <div className="mt-2 inline-flex items-center px-2.5 py-1 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium">
             型号：{product.model}
           </div>
@@ -155,7 +154,7 @@ export default function ProductDetail({ product, attachments }: ProductDetailPro
         </div>
 
         {/* Tab content */}
-        <div className="flex-1 overflow-y-auto p-8 animate-fade-in" key={activeTab}>
+        <div className="flex-1 overflow-y-auto p-6 animate-fade-in" key={activeTab}>
           {activeTab === 'summary' && (
             <div>
               {product.summary_content ? (
