@@ -34,6 +34,7 @@ export default function ProductsPage() {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('summary');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [pendingAttachments, setPendingAttachments] = useState<Array<{ file_name: string; file_url: string; file_type: string; file_size: number }>>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -129,6 +130,7 @@ export default function ProductsPage() {
     if (!files || files.length === 0) return;
     setUploading(true);
     setUploadError('');
+    const isNewProduct = editing?.id === '__new__';
     for (const file of Array.from(files)) {
       const formData = new FormData();
       formData.append('file', file);
@@ -141,23 +143,31 @@ export default function ProductsPage() {
           const nameLower = file.name.toLowerCase();
           if (nameLower.includes('证书') || nameLower.includes('cert')) fileType = 'certificate';
           else if (nameLower.includes('手册') || nameLower.includes('manual')) fileType = 'manual';
-          await fetch('/api/admin/attachments', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              product_id: editing?.id || 'pending',
-              file_name: file.name,
-              file_url: data.url,
-              file_type: fileType,
-              file_size: file.size,
-            }),
-          });
+          if (isNewProduct) {
+            setPendingAttachments((prev) => [...prev, { file_name: file.name, file_url: data.url, file_type: fileType, file_size: file.size }]);
+          } else {
+            const attRes = await fetch('/api/admin/attachments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                product_id: editing?.id,
+                file_name: file.name,
+                file_url: data.url,
+                file_type: fileType,
+                file_size: file.size,
+              }),
+            });
+            if (!attRes.ok) {
+              const attData = await attRes.json();
+              setUploadError(attData.error || '附件保存失败');
+            }
+          }
         }
       } catch {
         setUploadError('附件上传失败');
       }
     }
-    if (editing?.id) {
+    if (!isNewProduct && editing?.id) {
       const res = await fetch(`/api/admin/attachments?product_id=${editing.id}`);
       const attData = await res.json();
       setAttachments(attData.data || []);
@@ -205,12 +215,20 @@ export default function ProductsPage() {
         });
         const data = await res.json();
         if (!res.ok) { setSaveError(data.error || '保存失败'); setSaving(false); return; }
-        if (data.data?.id) {
-          await fetch('/api/admin/attachments', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: 'pending', product_id: data.data.id }),
-          });
+        if (data.data?.id && pendingAttachments.length > 0) {
+          for (const att of pendingAttachments) {
+            await fetch('/api/admin/attachments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                product_id: data.data.id,
+                file_name: att.file_name,
+                file_url: att.file_url,
+                file_type: att.file_type,
+                file_size: att.file_size,
+              }),
+            });
+          }
         }
       }
     } catch {
@@ -227,6 +245,7 @@ export default function ProductsPage() {
     setAttachments([]);
     setActiveTab('summary');
     setCurrentImageIndex(0);
+    setPendingAttachments([]);
     fetchData();
   };
 
@@ -273,6 +292,7 @@ export default function ProductsPage() {
     setAttachments([]);
     setActiveTab('summary');
     setCurrentImageIndex(0);
+    setPendingAttachments([]);
   };
 
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name || '-';
@@ -542,7 +562,7 @@ export default function ProductsPage() {
 
               {activeTab === 'attachments' && (
                 <div className="space-y-4">
-                  {/* Existing attachments */}
+                  {/* Existing attachments from database */}
                   {attachments.length > 0 && (
                     <div className="space-y-2">
                       {attachments.map((att) => (
@@ -572,6 +592,46 @@ export default function ProductsPage() {
                           </div>
                           <button
                             onClick={() => handleDeleteAttachment(att.id)}
+                            className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Pending attachments (new product, not yet saved) */}
+                  {pendingAttachments.length > 0 && (
+                    <div className="space-y-2">
+                      {pendingAttachments.map((att, idx) => (
+                        <div
+                          key={`pending-${idx}`}
+                          className="flex items-center justify-between p-3.5 bg-amber-50 rounded-xl border border-amber-200/60"
+                        >
+                          <div className="flex items-center space-x-3 min-w-0">
+                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                              {att.file_type === 'certificate' ? <Award size={14} className="text-emerald-500" /> :
+                               att.file_type === 'manual' ? <FileText size={14} className="text-brand-500" /> :
+                               <Paperclip size={14} className="text-surface-400" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-surface-800 truncate">{att.file_name}</p>
+                              <div className="flex items-center space-x-2 text-xs text-surface-400 mt-0.5">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-600">待保存</span>
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  att.file_type === 'certificate' ? 'bg-emerald-50 text-emerald-600' :
+                                  att.file_type === 'manual' ? 'bg-brand-50 text-brand-600' :
+                                  'bg-surface-100 text-surface-500'
+                                }`}>
+                                  {att.file_type === 'certificate' ? '证书' : att.file_type === 'manual' ? '手册' : '附件'}
+                                </span>
+                                {att.file_size && <span>{formatFileSize(att.file_size)}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setPendingAttachments((prev) => prev.filter((_, i) => i !== idx))}
                             className="p-1.5 text-surface-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors shrink-0"
                           >
                             <Trash2 size={14} />
