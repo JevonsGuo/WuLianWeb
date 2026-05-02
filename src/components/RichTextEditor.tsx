@@ -24,6 +24,7 @@ export default function RichTextEditor({ value, onChange, placeholder, style }: 
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
+        link: false,
       }),
       TableKit,
       Link.configure({
