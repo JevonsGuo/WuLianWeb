@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { ArrowRight } from 'lucide-react';
 import CategoryCarousel from '@/components/CategoryCarousel';
+import SolutionCarousel from '@/components/SolutionCarousel';
 
 export const revalidate = 30;
 
 async function getHomeData() {
   const [categoriesRes, solutionsRes] = await Promise.all([
     supabaseAdmin.from('product_categories').select('*').order('sort_order'),
-    supabaseAdmin.from('solutions').select('*').order('sort_order').limit(3),
+    supabaseAdmin.from('solutions').select('*').order('sort_order'),
   ]);
   return {
     categories: categoriesRes.data || [],
@@ -86,42 +87,7 @@ export default async function HomePage() {
               深耕汽车制造、食品包装、电子制造等核心行业，提供端到端智能化解决方案。
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {solutions.map((sol: any) => (
-              <Link
-                key={sol.id}
-                href="/solutions"
-                className="group bg-white rounded-2xl border border-surface-200/80 overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-400"
-              >
-                <div className="aspect-[16/10] bg-gradient-to-br from-emerald-50 via-surface-50 to-teal-50 flex items-center justify-center overflow-hidden">
-                  {sol.image_url ? (
-                    <img
-                      src={sol.image_url}
-                      alt={sol.industry_name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center">
-                      <span className="text-emerald-600 text-2xl font-bold">
-                        {sol.industry_name[0]}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-surface-900 group-hover:text-brand-600 transition-colors duration-200">
-                    {sol.industry_name}
-                  </h3>
-                  <p className="text-sm text-surface-500 mt-2 line-clamp-2 leading-relaxed">
-                    {sol.description}
-                  </p>
-                  <div className="mt-3 flex items-center text-sm text-brand-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    了解更多 <ArrowRight size={14} className="ml-1" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <SolutionCarousel solutions={solutions} />
         </div>
       </section>
     </>

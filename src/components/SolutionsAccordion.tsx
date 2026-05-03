@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronDown } from 'lucide-react';
 
@@ -23,15 +23,18 @@ export default function SolutionsAccordion({
   solutions,
   productsMap,
   categoriesMap,
+  initialExpandedId,
 }: {
   solutions: Solution[];
   productsMap: Map<string, Product>;
   categoriesMap: Map<string, string>;
+  initialExpandedId?: string | null;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(initialExpandedId || null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pendingExpand = useRef<string | null>(null);
+  const initialScrolled = useRef(false);
 
   const smoothScrollTo = useCallback((targetY: number) => {
     const startY = window.pageYOffset;
@@ -58,6 +61,17 @@ export default function SolutionsAccordion({
       smoothScrollTo(targetY);
     }
   }, [smoothScrollTo]);
+
+  useEffect(() => {
+    if (initialExpandedId && !initialScrolled.current) {
+      initialScrolled.current = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToItem(initialExpandedId);
+        });
+      });
+    }
+  }, [initialExpandedId, scrollToItem]);
 
   const toggle = useCallback((id: string) => {
     if (expandedId === id) {

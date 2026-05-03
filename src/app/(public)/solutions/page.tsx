@@ -17,8 +17,10 @@ async function getSolutions() {
   };
 }
 
-export default async function SolutionsPage() {
+export default async function SolutionsPage({ searchParams }: { searchParams: Promise<{ solution?: string }> }) {
   const { solutions, productsMap, categoriesMap } = await getSolutions();
+  const params = await searchParams;
+  const initialSolutionId = params.solution || null;
 
   return (
     <>
@@ -40,6 +42,7 @@ export default async function SolutionsPage() {
           solutions={solutions}
           productsMap={productsMap}
           categoriesMap={categoriesMap}
+          initialExpandedId={initialSolutionId}
         />
       </div>
     </>
