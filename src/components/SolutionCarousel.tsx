@@ -139,9 +139,7 @@ export default function SolutionCarousel({ solutions }: { solutions: Solution[] 
               <h3 className="text-lg font-semibold text-surface-900 group-hover:text-brand-600 transition-colors duration-200">
                 {sol.industry_name}
               </h3>
-              <p className="text-sm text-surface-500 mt-2 line-clamp-2 leading-relaxed">
-                {sol.description}
-              </p>
+              <div className="text-sm text-surface-500 mt-2 line-clamp-2 leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sol.description || '' }} />
               <div className="mt-3 flex items-center text-sm text-brand-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 了解更多 <ArrowRight size={14} className="ml-1" />
               </div>
