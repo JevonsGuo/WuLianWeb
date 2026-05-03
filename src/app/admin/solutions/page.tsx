@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { Solution } from '@/lib/types';
 import { Plus, Pencil, Trash2, Upload, AlertCircle, ChevronRight, ChevronDown } from 'lucide-react';
+
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false });
 
 interface ProductOption {
   id: string;
@@ -228,8 +231,11 @@ export default function SolutionsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
-                <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  rows={4} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <RichTextEditor
+                  value={form.description}
+                  onChange={(val: string) => setForm((f) => ({ ...f, description: val }))}
+                  placeholder="输入解决方案描述..."
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">关联产品</label>

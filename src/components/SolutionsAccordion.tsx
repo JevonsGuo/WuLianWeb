@@ -194,9 +194,7 @@ export default function SolutionsAccordion({
                     )}
                   </div>
                   <div className="md:w-3/5 p-8 md:p-10 flex flex-col justify-center">
-                    <p className="text-surface-600 leading-relaxed text-base mb-6">
-                      {sol.description}
-                    </p>
+                    <div className="text-surface-600 leading-relaxed text-base mb-6 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: sol.description || '' }} />
 
                     {relatedProducts.length > 0 && (
                       <div>
