@@ -1,14 +1,25 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Mail, MapPin } from 'lucide-react';
 
 export default function Footer() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((result) => {
+        if (result.data) setSettings(result.data);
+      });
+  }, []);
+
   return (
     <footer className="bg-surface-900 text-surface-400 mt-auto">
-      {/* Top gradient accent */}
       <div className="h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {/* 公司信息 */}
           <div>
             <div className="flex items-center space-x-2.5 mb-5">
               <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center">
@@ -21,7 +32,6 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* 快速链接 */}
           <div>
             <h3 className="text-white font-semibold mb-5 text-sm uppercase tracking-wider">快速链接</h3>
             <ul className="space-y-3 text-sm">
@@ -32,17 +42,16 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* 联系方式 */}
           <div>
             <h3 className="text-white font-semibold mb-5 text-sm uppercase tracking-wider">联系我们</h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-center space-x-2">
                 <Mail size={14} className="text-brand-400 shrink-0" />
-                <span>contact@wulian-tech.com</span>
+                <span>{settings.contact_email || 'contact@wulian-tech.com'}</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin size={14} className="text-brand-400 shrink-0" />
-                <span>上海市浦东新区张江高科</span>
+                <span>{settings.contact_address || '上海市浦东新区张江高科'}</span>
               </li>
             </ul>
           </div>

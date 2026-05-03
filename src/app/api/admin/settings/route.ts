@@ -6,7 +6,7 @@ export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('site_settings')
     .select('*')
-    .order('group, sort_order');
+    .order('sort_order');
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
