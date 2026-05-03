@@ -2,17 +2,26 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Solution } from '@/lib/types';
-import { Plus, Pencil, Trash2, Upload, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, AlertCircle, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface ProductOption {
   id: string;
   name: string;
   model: string;
+  category_id: string;
+}
+
+interface CategoryOption {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 export default function SolutionsPage() {
   const [solutions, setSolutions] = useState<Solution[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Solution | null>(null);
@@ -25,12 +34,14 @@ export default function SolutionsPage() {
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
-    const [solutionsRes, productsRes] = await Promise.all([
+    const [solutionsRes, productsRes, categoriesRes] = await Promise.all([
       fetch('/api/admin/solutions').then((r) => r.json()),
       fetch('/api/admin/products').then((r) => r.json()),
+      fetch('/api/categories').then((r) => r.json()),
     ]);
     setSolutions(solutionsRes.data || []);
     setProducts(productsRes.data || []);
+    setCategories(categoriesRes.data || []);
     setLoading(false);
   }, []);
 
@@ -129,6 +140,33 @@ export default function SolutionsPage() {
     }));
   };
 
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) next.delete(categoryId);
+      else next.add(categoryId);
+      return next;
+    });
+  };
+
+  const toggleCategoryProducts = (categoryId: string) => {
+    const categoryProducts = products.filter((p) => p.category_id === categoryId);
+    const categoryProductIds = categoryProducts.map((p) => p.id);
+    const allSelected = categoryProductIds.every((id) => form.related_product_ids.includes(id));
+
+    setForm((f) => ({
+      ...f,
+      related_product_ids: allSelected
+        ? f.related_product_ids.filter((id) => !categoryProductIds.includes(id))
+        : [...new Set([...f.related_product_ids, ...categoryProductIds])],
+    }));
+  };
+
+  const productsByCategory = categories.map((cat) => ({
+    ...cat,
+    products: products.filter((p) => p.category_id === cat.id),
+  })).filter((cat) => cat.products.length > 0);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -187,23 +225,67 @@ export default function SolutionsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">关联产品</label>
-                <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
-                  {products.length === 0 ? (
-                    <p className="text-sm text-gray-400 p-2">暂无产品，请先添加产品</p>
+                <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
+                  {productsByCategory.length === 0 ? (
+                    <p className="text-sm text-gray-400 p-3">暂无产品，请先添加产品</p>
                   ) : (
-                    products.map((p) => (
-                      <label key={p.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={form.related_product_ids.includes(p.id)}
-                          onChange={() => toggleProduct(p.id)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">{p.name}（{p.model}）</span>
-                      </label>
-                    ))
+                    productsByCategory.map((cat) => {
+                      const isExpanded = expandedCategories.has(cat.id);
+                      const categoryProductIds = cat.products.map((p) => p.id);
+                      const allSelected = categoryProductIds.length > 0 && categoryProductIds.every((id) => form.related_product_ids.includes(id));
+                      const someSelected = categoryProductIds.some((id) => form.related_product_ids.includes(id));
+                      return (
+                        <div key={cat.id}>
+                          <div className="flex items-center px-3 py-2 hover:bg-gray-50 border-b border-gray-100">
+                            <button
+                              type="button"
+                              onClick={() => toggleCategory(cat.id)}
+                              className="mr-2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </button>
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                              onChange={() => toggleCategoryProducts(cat.id)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                            />
+                            <span
+                              className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+                              onClick={() => toggleCategory(cat.id)}
+                            >
+                              {cat.name}
+                              <span className="text-gray-400 font-normal ml-1">({cat.products.length})</span>
+                            </span>
+                          </div>
+                          {isExpanded && (
+                            <div className="bg-gray-50/50">
+                              {cat.products.map((p) => (
+                                <label
+                                  key={p.id}
+                                  className="flex items-center px-3 py-2 pl-10 hover:bg-gray-100 cursor-pointer"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={form.related_product_ids.includes(p.id)}
+                                    onChange={() => toggleProduct(p.id)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                                  />
+                                  <span className="text-sm text-gray-600">{p.name}</span>
+                                  <span className="text-xs text-gray-400 ml-2">{p.model}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
+                {form.related_product_ids.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-1">已选择 {form.related_product_ids.length} 个产品</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">排序</label>
