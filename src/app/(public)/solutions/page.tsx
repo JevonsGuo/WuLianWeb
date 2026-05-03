@@ -20,7 +20,7 @@ async function getSolutions() {
 export default async function SolutionsPage({ searchParams }: { searchParams: Promise<{ solution?: string }> }) {
   const { solutions, productsMap, categoriesMap } = await getSolutions();
   const params = await searchParams;
-  const initialSolutionId = params.solution || null;
+  const initialSolutionSlug = params.solution || null;
 
   return (
     <>
@@ -42,7 +42,7 @@ export default async function SolutionsPage({ searchParams }: { searchParams: Pr
           solutions={solutions}
           productsMap={productsMap}
           categoriesMap={categoriesMap}
-          initialExpandedId={initialSolutionId}
+          initialExpandedSlug={initialSolutionSlug}
         />
       </div>
     </>

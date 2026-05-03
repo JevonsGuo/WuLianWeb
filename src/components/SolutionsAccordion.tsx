@@ -7,6 +7,7 @@ import { ChevronDown } from 'lucide-react';
 interface Solution {
   id: string;
   industry_name: string;
+  slug: string;
   description: string;
   image_url: string | null;
   related_product_ids: string | null;
@@ -23,14 +24,18 @@ export default function SolutionsAccordion({
   solutions,
   productsMap,
   categoriesMap,
-  initialExpandedId,
+  initialExpandedSlug,
 }: {
   solutions: Solution[];
   productsMap: Map<string, Product>;
   categoriesMap: Map<string, string>;
-  initialExpandedId?: string | null;
+  initialExpandedSlug?: string | null;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(initialExpandedId || null);
+  const [expandedId, setExpandedId] = useState<string | null>(() => {
+    if (!initialExpandedSlug) return null;
+    const found = solutions.find((s) => s.slug === initialExpandedSlug);
+    return found?.id || null;
+  });
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pendingExpand = useRef<string | null>(null);
@@ -63,15 +68,18 @@ export default function SolutionsAccordion({
   }, [smoothScrollTo]);
 
   useEffect(() => {
-    if (initialExpandedId && !initialScrolled.current) {
-      initialScrolled.current = true;
-      requestAnimationFrame(() => {
+    if (initialExpandedSlug && !initialScrolled.current) {
+      const found = solutions.find((s) => s.slug === initialExpandedSlug);
+      if (found) {
+        initialScrolled.current = true;
         requestAnimationFrame(() => {
-          scrollToItem(initialExpandedId);
+          requestAnimationFrame(() => {
+            scrollToItem(found.id);
+          });
         });
-      });
+      }
     }
-  }, [initialExpandedId, scrollToItem]);
+  }, [initialExpandedSlug, solutions, scrollToItem]);
 
   const toggle = useCallback((id: string) => {
     if (expandedId === id) {

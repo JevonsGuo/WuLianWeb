@@ -41,6 +41,7 @@ export interface ProductAttachment {
 export interface Solution {
   id: string;
   industry_name: string;
+  slug: string;
   image_url: string;
   description: string;
   related_product_ids: string;

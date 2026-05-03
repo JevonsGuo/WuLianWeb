@@ -26,7 +26,7 @@ export default function SolutionsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Solution | null>(null);
   const [form, setForm] = useState({
-    industry_name: '', image_url: '', description: '',
+    industry_name: '', slug: '', image_url: '', description: '',
     related_product_ids: [] as string[], sort_order: 0,
   });
   const [uploading, setUploading] = useState(false);
@@ -71,6 +71,7 @@ export default function SolutionsPage() {
     try {
       const payload = {
         industry_name: form.industry_name,
+        slug: form.slug,
         image_url: form.image_url,
         description: form.description,
         related_product_ids: JSON.stringify(form.related_product_ids),
@@ -96,7 +97,7 @@ export default function SolutionsPage() {
       } else {
         setShowForm(false);
         setEditing(null);
-        setForm({ industry_name: '', image_url: '', description: '', related_product_ids: [], sort_order: 0 });
+        setForm({ industry_name: '', slug: '', image_url: '', description: '', related_product_ids: [], sort_order: 0 });
         fetchData();
       }
     } catch {
@@ -109,6 +110,7 @@ export default function SolutionsPage() {
     setEditing(sol);
     setForm({
       industry_name: sol.industry_name,
+      slug: sol.slug || '',
       image_url: sol.image_url || '',
       description: sol.description || '',
       related_product_ids: sol.related_product_ids ? JSON.parse(sol.related_product_ids) : [],
@@ -174,7 +176,7 @@ export default function SolutionsPage() {
         <button
           onClick={() => {
             setEditing(null);
-            setForm({ industry_name: '', image_url: '', description: '', related_product_ids: [], sort_order: 0 });
+            setForm({ industry_name: '', slug: '', image_url: '', description: '', related_product_ids: [], sort_order: 0 });
             setUploadError('');
             setShowForm(true);
           }}
@@ -194,6 +196,12 @@ export default function SolutionsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">行业名称 *</label>
                 <input type="text" value={form.industry_name} onChange={(e) => setForm((f) => ({ ...f, industry_name: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">SLUG</label>
+                <input type="text" value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.replace(/[^a-zA-Z0-9-]/g, '') }))}
+                  placeholder="留空则使用行业名称拼音"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">行业图片</label>
@@ -311,6 +319,7 @@ export default function SolutionsPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">行业名称</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">SLUG</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">描述</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">排序</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">操作</th>
@@ -318,13 +327,14 @@ export default function SolutionsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">加载中...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">加载中...</td></tr>
               ) : solutions.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400">暂无数据</td></tr>
+                <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-400">暂无数据</td></tr>
               ) : (
                 solutions.map((sol) => (
                   <tr key={sol.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{sol.industry_name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">{sol.slug || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{sol.description}</td>
                     <td className="px-6 py-4 text-sm text-gray-600">{sol.sort_order}</td>
                     <td className="px-6 py-4 text-right">

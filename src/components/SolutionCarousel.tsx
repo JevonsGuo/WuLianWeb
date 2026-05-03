@@ -7,6 +7,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 interface Solution {
   id: string;
   industry_name: string;
+  slug: string;
   description: string;
   image_url: string | null;
 }
@@ -116,7 +117,7 @@ export default function SolutionCarousel({ solutions }: { solutions: Solution[] 
         {solutions.map((sol) => (
           <Link
             key={sol.id}
-            href={`/solutions?solution=${sol.id}`}
+            href={`/solutions?solution=${sol.slug}`}
             className="group bg-white rounded-2xl border border-surface-200/80 overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-400 snap-start shrink-0 w-[calc(33.333%-16px)] min-w-[280px]"
           >
             <div className="aspect-[16/10] bg-gradient-to-br from-emerald-50 via-surface-50 to-teal-50 flex items-center justify-center overflow-hidden">
