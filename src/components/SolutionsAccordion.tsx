@@ -108,32 +108,51 @@ export default function SolutionsAccordion({
 
             <div
               className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
               }`}
             >
-              <div className="bg-white rounded-b-2xl border border-t-0 border-surface-200/80 px-8 md:px-12 py-8">
-                <p className="text-surface-600 leading-relaxed text-base mb-6">
-                  {sol.description}
-                </p>
-
-                {relatedProducts.length > 0 && (
-                  <div>
-                    <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">
-                      关联产品
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {relatedProducts.map((product: any) => (
-                        <Link
-                          key={product.id}
-                          href={`/products?category=${categoriesMap.get(product.category_id) || ''}&product=${product.model}`}
-                          className="inline-flex items-center px-3.5 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-100 transition-colors duration-200"
-                        >
-                          {product.name}（{product.model}）
-                        </Link>
-                      ))}
-                    </div>
+              <div className="bg-white rounded-b-2xl border border-t-0 border-surface-200/80 overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  <div className="md:w-2/5 aspect-video md:aspect-auto min-h-[220px] bg-gradient-to-br from-emerald-50 to-teal-50 overflow-hidden">
+                    {sol.image_url ? (
+                      <img
+                        src={sol.image_url}
+                        alt={sol.industry_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-emerald-200 text-8xl font-bold">
+                          {sol.industry_name[0]}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+                  <div className="md:w-3/5 p-8 md:p-10 flex flex-col justify-center">
+                    <p className="text-surface-600 leading-relaxed text-base mb-6">
+                      {sol.description}
+                    </p>
+
+                    {relatedProducts.length > 0 && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">
+                          关联产品
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {relatedProducts.map((product: any) => (
+                            <Link
+                              key={product.id}
+                              href={`/products?category=${categoriesMap.get(product.category_id) || ''}&product=${product.model}`}
+                              className="inline-flex items-center px-3.5 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-sm font-medium hover:bg-brand-100 transition-colors duration-200"
+                            >
+                              {product.name}（{product.model}）
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
