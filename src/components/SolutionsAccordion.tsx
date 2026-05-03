@@ -122,11 +122,12 @@ export default function SolutionsAccordion({
             </button>
 
             <div
-              className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                isExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'
+              className={`grid transition-all duration-500 ease-in-out ${
+                isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'
               }`}
             >
-              <div className="bg-white rounded-2xl border border-surface-200/80 overflow-hidden">
+              <div className="overflow-hidden">
+                <div className="bg-white rounded-2xl border border-surface-200/80 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   <div className="md:w-2/5 aspect-video md:aspect-auto min-h-[220px] bg-gradient-to-br from-emerald-50 to-teal-50 overflow-hidden">
                     {sol.image_url ? (
@@ -168,6 +169,7 @@ export default function SolutionsAccordion({
                     )}
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>
