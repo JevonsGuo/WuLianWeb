@@ -36,16 +36,12 @@ export default function SolutionsAccordion({
     setExpandedId((prev) => {
       const next = prev === id ? null : id;
       setTimeout(() => {
-        if (next) {
-          const el = itemRefs.current.get(next);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        } else {
-          const firstEl = itemRefs.current.get(solutions[0]?.id);
-          if (firstEl) {
-            firstEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+        const targetId = next || solutions[0]?.id;
+        const el = itemRefs.current.get(targetId);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const scrollTop = window.pageYOffset + rect.top - 80;
+          window.scrollTo({ top: scrollTop, behavior: 'smooth' });
         }
       }, 300);
       return next;
