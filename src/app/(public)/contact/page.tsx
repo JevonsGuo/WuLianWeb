@@ -78,7 +78,7 @@ export default function ContactPage() {
               <p className="text-surface-400 text-sm mb-8">填写以下表单，我们的团队会尽快与您取得联系</p>
 
               <form
-                action="https://formsubmit.co/contact@wulian-tech.com"
+                action="https://formsubmit.co/crab@gyfolk.com"
                 method="POST"
                 className="space-y-5"
               >
@@ -112,7 +112,7 @@ export default function ContactPage() {
                       name="email"
                       required
                       className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
-                      placeholder="your@email.com"
+                      placeholder="您的邮箱"
                     />
                   </div>
                   <div>
