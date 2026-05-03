@@ -139,7 +139,7 @@ export default function CategoriesPage() {
                 <input
                   type="text"
                   value={form.slug}
-                  onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.replace(/[^a-z0-9-]/g, '') }))}
+                  onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.replace(/[^a-zA-Z0-9-]/g, '') }))}
                   placeholder="留空则根据名称自动生成拼音"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
                 />
