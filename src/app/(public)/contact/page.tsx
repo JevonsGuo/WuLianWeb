@@ -1,6 +1,26 @@
+'use client';
+
+import { useState } from 'react';
 import { Mail, MapPin, Phone, Clock, Send } from 'lucide-react';
 
 export default function ContactPage() {
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  const validatePhone = (value: string) => {
+    setPhone(value);
+    if (!value.trim()) {
+      setPhoneError('');
+      return;
+    }
+    const phoneRegex = /^1[3-9]\d{9}$|^\d{3,4}-?\d{7,8}$/;
+    if (!phoneRegex.test(value.trim())) {
+      setPhoneError('电话号码格式不正确');
+    } else {
+      setPhoneError('');
+    }
+  };
+
   return (
     <>
       <div className="relative overflow-hidden bg-surface-900">
@@ -80,6 +100,11 @@ export default function ContactPage() {
               <form
                 action="https://formsubmit.co/crab@gyfolk.com"
                 method="POST"
+                onSubmit={(e) => {
+                  if (phoneError) {
+                    e.preventDefault();
+                  }
+                }}
                 className="space-y-5"
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -120,9 +145,12 @@ export default function ContactPage() {
                     <input
                       type="tel"
                       name="phone"
-                      className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
-                      placeholder="联系电话"
+                      value={phone}
+                      onChange={(e) => validatePhone(e.target.value)}
+                      className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow ${phoneError ? 'border-red-300 bg-red-50/30' : 'border-surface-200'}`}
+                      placeholder="手机号或座机号码"
                     />
+                    {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
                   </div>
                 </div>
 
