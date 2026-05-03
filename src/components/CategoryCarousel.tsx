@@ -14,12 +14,16 @@ interface Category {
 const categoryIcons = [Cpu, Bot, Eye];
 
 export default function CategoryCarousel({ categories }: { categories: Category[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(categories.length);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
   const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
+
+  const displayItems = [...categories, ...categories, ...categories];
+  const len = categories.length;
 
   const updateVisibleCount = useCallback(() => {
     if (!containerRef.current) return;
@@ -35,40 +39,35 @@ export default function CategoryCarousel({ categories }: { categories: Category[
     return () => window.removeEventListener('resize', updateVisibleCount);
   }, [updateVisibleCount]);
 
-  const maxIndex = Math.max(0, categories.length - visibleCount);
-
-  const goTo = useCallback((index: number, animate = true) => {
-    if (animate) setIsTransitioning(true);
-    else setIsTransitioning(false);
-    setCurrentIndex(index);
-  }, []);
+  const getItemWidth = useCallback(() => {
+    if (!containerRef.current) return 300;
+    const gap = 24;
+    return (containerRef.current.offsetWidth - gap * (visibleCount - 1)) / visibleCount;
+  }, [visibleCount]);
 
   const goNext = useCallback(() => {
-    if (currentIndex >= maxIndex) {
-      setIsTransitioning(true);
-      setCurrentIndex(currentIndex + 1);
-      setTimeout(() => {
-        setIsTransitioning(false);
-        setCurrentIndex(0);
-      }, 500);
-    } else {
-      setIsTransitioning(true);
-      setCurrentIndex(currentIndex + 1);
-    }
-  }, [currentIndex, maxIndex]);
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => prev + 1);
+  }, [isAnimating]);
 
   const goPrev = useCallback(() => {
-    if (currentIndex <= 0) {
-      setIsTransitioning(false);
-      setCurrentIndex(maxIndex);
-    } else {
-      setIsTransitioning(true);
-      setCurrentIndex(currentIndex - 1);
-    }
-  }, [currentIndex, maxIndex]);
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => prev - 1);
+  }, [isAnimating]);
+
+  const handleTransitionEnd = useCallback(() => {
+    setIsAnimating(false);
+    setCurrentIndex((prev) => {
+      if (prev >= len * 2) return prev - len;
+      if (prev < len) return prev + len;
+      return prev;
+    });
+  }, [len]);
 
   useEffect(() => {
-    if (categories.length <= visibleCount) return;
+    if (len <= visibleCount) return;
 
     const startAuto = () => {
       if (autoTimerRef.current) clearInterval(autoTimerRef.current);
@@ -82,21 +81,12 @@ export default function CategoryCarousel({ categories }: { categories: Category[
     return () => {
       if (autoTimerRef.current) clearInterval(autoTimerRef.current);
     };
-  }, [categories.length, visibleCount, goNext]);
+  }, [len, visibleCount, goNext]);
 
   const handleMouseEnter = () => { pausedRef.current = true; };
   const handleMouseLeave = () => { pausedRef.current = false; };
 
-  const showArrows = categories.length > visibleCount;
-
-  const displayItems = [...categories, categories[0]];
-
-  const getItemWidth = () => {
-    if (!containerRef.current) return 300;
-    const gap = 24;
-    return (containerRef.current.offsetWidth - gap * (visibleCount - 1)) / visibleCount;
-  };
-
+  const showArrows = len > visibleCount;
   const itemWidth = getItemWidth();
   const gap = 24;
   const translateX = -(currentIndex * (itemWidth + gap));
@@ -127,18 +117,20 @@ export default function CategoryCarousel({ categories }: { categories: Category[
 
       <div className="overflow-hidden">
         <div
+          ref={trackRef}
           className="flex"
           style={{
             gap: `${gap}px`,
             transform: `translateX(${translateX}px)`,
-            transition: isTransitioning ? 'transform 0.5s ease' : 'none',
+            transition: isAnimating ? 'transform 0.5s ease' : 'none',
           }}
+          onTransitionEnd={handleTransitionEnd}
         >
           {displayItems.map((cat, index) => {
             const Icon = categoryIcons[index % categoryIcons.length];
             return (
               <Link
-                key={`cat-${cat.id}-${index}`}
+                key={`cat-${index}`}
                 href={`/products?category=${cat.slug}`}
                 className="group relative bg-white rounded-2xl border border-surface-200/80 overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-400 shrink-0"
                 style={{ width: `${itemWidth}px` }}

@@ -13,12 +13,16 @@ interface Solution {
 }
 
 export default function SolutionCarousel({ solutions }: { solutions: Solution[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(solutions.length);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
   const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
+
+  const displayItems = [...solutions, ...solutions, ...solutions];
+  const len = solutions.length;
 
   const updateVisibleCount = useCallback(() => {
     if (!containerRef.current) return;
@@ -34,34 +38,35 @@ export default function SolutionCarousel({ solutions }: { solutions: Solution[] 
     return () => window.removeEventListener('resize', updateVisibleCount);
   }, [updateVisibleCount]);
 
-  const maxIndex = Math.max(0, solutions.length - visibleCount);
+  const getItemWidth = useCallback(() => {
+    if (!containerRef.current) return 300;
+    const gap = 24;
+    return (containerRef.current.offsetWidth - gap * (visibleCount - 1)) / visibleCount;
+  }, [visibleCount]);
 
   const goNext = useCallback(() => {
-    if (currentIndex >= maxIndex) {
-      setIsTransitioning(true);
-      setCurrentIndex(currentIndex + 1);
-      setTimeout(() => {
-        setIsTransitioning(false);
-        setCurrentIndex(0);
-      }, 500);
-    } else {
-      setIsTransitioning(true);
-      setCurrentIndex(currentIndex + 1);
-    }
-  }, [currentIndex, maxIndex]);
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => prev + 1);
+  }, [isAnimating]);
 
   const goPrev = useCallback(() => {
-    if (currentIndex <= 0) {
-      setIsTransitioning(false);
-      setCurrentIndex(maxIndex);
-    } else {
-      setIsTransitioning(true);
-      setCurrentIndex(currentIndex - 1);
-    }
-  }, [currentIndex, maxIndex]);
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => prev - 1);
+  }, [isAnimating]);
+
+  const handleTransitionEnd = useCallback(() => {
+    setIsAnimating(false);
+    setCurrentIndex((prev) => {
+      if (prev >= len * 2) return prev - len;
+      if (prev < len) return prev + len;
+      return prev;
+    });
+  }, [len]);
 
   useEffect(() => {
-    if (solutions.length <= visibleCount) return;
+    if (len <= visibleCount) return;
 
     const startAuto = () => {
       if (autoTimerRef.current) clearInterval(autoTimerRef.current);
@@ -75,21 +80,12 @@ export default function SolutionCarousel({ solutions }: { solutions: Solution[] 
     return () => {
       if (autoTimerRef.current) clearInterval(autoTimerRef.current);
     };
-  }, [solutions.length, visibleCount, goNext]);
+  }, [len, visibleCount, goNext]);
 
   const handleMouseEnter = () => { pausedRef.current = true; };
   const handleMouseLeave = () => { pausedRef.current = false; };
 
-  const showArrows = solutions.length > visibleCount;
-
-  const displayItems = [...solutions, solutions[0]];
-
-  const getItemWidth = () => {
-    if (!containerRef.current) return 300;
-    const gap = 24;
-    return (containerRef.current.offsetWidth - gap * (visibleCount - 1)) / visibleCount;
-  };
-
+  const showArrows = len > visibleCount;
   const itemWidth = getItemWidth();
   const gap = 24;
   const translateX = -(currentIndex * (itemWidth + gap));
@@ -120,16 +116,18 @@ export default function SolutionCarousel({ solutions }: { solutions: Solution[] 
 
       <div className="overflow-hidden">
         <div
+          ref={trackRef}
           className="flex"
           style={{
             gap: `${gap}px`,
             transform: `translateX(${translateX}px)`,
-            transition: isTransitioning ? 'transform 0.5s ease' : 'none',
+            transition: isAnimating ? 'transform 0.5s ease' : 'none',
           }}
+          onTransitionEnd={handleTransitionEnd}
         >
           {displayItems.map((sol, index) => (
             <Link
-              key={`sol-${sol.id}-${index}`}
+              key={`sol-${index}`}
               href={`/solutions?solution=${sol.slug}`}
               className="group bg-white rounded-2xl border border-surface-200/80 overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-400 shrink-0"
               style={{ width: `${itemWidth}px` }}
