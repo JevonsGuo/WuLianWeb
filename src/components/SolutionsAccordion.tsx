@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 
 interface Solution {
@@ -31,6 +32,8 @@ export default function SolutionsAccordion({
   categoriesMap: Map<string, string>;
   initialExpandedSlug?: string | null;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [expandedId, setExpandedId] = useState<string | null>(() => {
     if (!initialExpandedSlug) return null;
     const found = solutions.find((s) => s.slug === initialExpandedSlug);
@@ -84,8 +87,14 @@ export default function SolutionsAccordion({
   const toggle = useCallback((id: string) => {
     if (expandedId === id) {
       setExpandedId(null);
+      router.replace(pathname, { scroll: false });
       setTimeout(() => scrollToItem(solutions[0]?.id), 500);
       return;
+    }
+
+    const sol = solutions.find((s) => s.id === id);
+    if (sol?.slug) {
+      router.replace(`${pathname}?solution=${sol.slug}`, { scroll: false });
     }
 
     if (expandedId !== null) {
@@ -100,7 +109,7 @@ export default function SolutionsAccordion({
       setExpandedId(id);
       requestAnimationFrame(() => scrollToItem(id));
     }
-  }, [expandedId, solutions, scrollToItem]);
+  }, [expandedId, solutions, scrollToItem, router, pathname]);
 
   return (
     <div className="space-y-3">
