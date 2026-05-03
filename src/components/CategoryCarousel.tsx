@@ -15,30 +15,73 @@ const categoryIcons = [Cpu, Bot, Eye];
 
 export default function CategoryCarousel({ categories }: { categories: Category[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const [direction, setDirection] = useState<'left' | 'right'>('right');
   const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pausedRef = useRef(false);
+  const isJumpingRef = useRef(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const allItems = [...categories, ...categories, ...categories];
+  const singleSetWidth = useRef(0);
+
+  const getItemWidth = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return 300;
+    return el.querySelector<HTMLElement>(':scope > *')?.offsetWidth || 300;
+  }, []);
+
+  const getGap = useCallback(() => {
+    return 24;
+  }, []);
 
   const checkScroll = useCallback(() => {
+    if (isJumpingRef.current) return;
     const el = scrollRef.current;
     if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 2);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
-  }, []);
+
+    const itemW = getItemWidth();
+    const gap = getGap();
+    const step = itemW + gap;
+    singleSetWidth.current = (itemW + gap) * categories.length;
+
+    const baseOffset = singleSetWidth.current;
+    const scrollLeft = el.scrollLeft;
+
+    setCanScrollLeft(true);
+    setCanScrollRight(true);
+
+    if (scrollLeft >= baseOffset * 2) {
+      isJumpingRef.current = true;
+      el.scrollLeft = scrollLeft - baseOffset;
+      requestAnimationFrame(() => { isJumpingRef.current = false; });
+    } else if (scrollLeft < baseOffset - step) {
+      isJumpingRef.current = true;
+      el.scrollLeft = scrollLeft + baseOffset;
+      requestAnimationFrame(() => { isJumpingRef.current = false; });
+    }
+  }, [categories.length, getItemWidth, getGap]);
 
   const scroll = useCallback((dir: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
-    const cardWidth = el.querySelector<HTMLElement>(':scope > *')?.offsetWidth || 300;
-    const gap = 24;
+    const cardWidth = getItemWidth();
+    const gap = getGap();
     el.scrollBy({ left: dir === 'left' ? -(cardWidth + gap) : (cardWidth + gap), behavior: 'smooth' });
-    setTimeout(checkScroll, 400);
-  }, [checkScroll]);
+  }, [getItemWidth, getGap]);
 
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || categories.length === 0) return;
+
+    const itemW = getItemWidth();
+    const gap = getGap();
+    singleSetWidth.current = (itemW + gap) * categories.length;
+    el.scrollLeft = singleSetWidth.current;
+
     checkScroll();
+  }, [categories, checkScroll, getItemWidth, getGap]);
+
+  useEffect(() => {
     window.addEventListener('resize', checkScroll);
     return () => window.removeEventListener('resize', checkScroll);
   }, [checkScroll]);
@@ -50,24 +93,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
       if (autoTimerRef.current) clearInterval(autoTimerRef.current);
       autoTimerRef.current = setInterval(() => {
         if (pausedRef.current) return;
-        const el = scrollRef.current;
-        if (!el) return;
-
-        const atStart = el.scrollLeft <= 2;
-        const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
-
-        let dir: 'left' | 'right';
-        if (atEnd) {
-          dir = 'left';
-          setDirection('left');
-        } else if (atStart) {
-          dir = 'right';
-          setDirection('right');
-        } else {
-          dir = direction;
-        }
-
-        scroll(dir);
+        scroll('right');
       }, 3000);
     };
 
@@ -75,17 +101,45 @@ export default function CategoryCarousel({ categories }: { categories: Category[
     return () => {
       if (autoTimerRef.current) clearInterval(autoTimerRef.current);
     };
-  }, [categories.length, direction, scroll]);
+  }, [categories.length, scroll]);
 
-  const handleMouseEnter = () => {
-    pausedRef.current = true;
-  };
-
-  const handleMouseLeave = () => {
-    pausedRef.current = false;
-  };
+  const handleMouseEnter = () => { pausedRef.current = true; };
+  const handleMouseLeave = () => { pausedRef.current = false; };
 
   const showArrows = categories.length > 3;
+
+  const renderCard = (cat: Category, index: number, keyPrefix: string) => {
+    const Icon = categoryIcons[index % categoryIcons.length];
+    return (
+      <Link
+        key={`${keyPrefix}-${cat.id}-${index}`}
+        href={`/products?category=${cat.slug}`}
+        className="group relative bg-white rounded-2xl border border-surface-200/80 overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-400 snap-start shrink-0 w-[calc(33.333%-16px)] min-w-[280px]"
+      >
+        <div className="aspect-[16/10] bg-gradient-to-br from-brand-50 via-surface-50 to-brand-100/50 flex items-center justify-center overflow-hidden">
+          {cat.image_url ? (
+            <img
+              src={cat.image_url}
+              alt={cat.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <Icon size={28} className="text-brand-500" />
+            </div>
+          )}
+        </div>
+        <div className="p-6">
+          <h3 className="text-lg font-semibold text-surface-900 group-hover:text-brand-600 transition-colors duration-200">
+            {cat.name}
+          </h3>
+          <div className="mt-2 flex items-center text-sm text-brand-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            了解更多 <ArrowRight size={14} className="ml-1" />
+          </div>
+        </div>
+      </Link>
+    );
+  };
 
   return (
     <div
@@ -115,38 +169,7 @@ export default function CategoryCarousel({ categories }: { categories: Category[
         onScroll={checkScroll}
         className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pb-2"
       >
-        {categories.map((cat, index) => {
-          const Icon = categoryIcons[index % categoryIcons.length];
-          return (
-            <Link
-              key={cat.id}
-              href={`/products?category=${cat.slug}`}
-              className="group relative bg-white rounded-2xl border border-surface-200/80 overflow-hidden shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-400 snap-start shrink-0 w-[calc(33.333%-16px)] min-w-[280px]"
-            >
-              <div className="aspect-[16/10] bg-gradient-to-br from-brand-50 via-surface-50 to-brand-100/50 flex items-center justify-center overflow-hidden">
-                {cat.image_url ? (
-                  <img
-                    src={cat.image_url}
-                    alt={cat.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Icon size={28} className="text-brand-500" />
-                  </div>
-                )}
-              </div>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-surface-900 group-hover:text-brand-600 transition-colors duration-200">
-                  {cat.name}
-                </h3>
-                <div className="mt-2 flex items-center text-sm text-brand-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  了解更多 <ArrowRight size={14} className="ml-1" />
-                </div>
-              </div>
-            </Link>
-          );
-        })}
+        {allItems.map((cat, index) => renderCard(cat, index % categories.length, `c${Math.floor(index / categories.length)}`))}
       </div>
     </div>
   );
