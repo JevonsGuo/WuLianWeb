@@ -34,23 +34,28 @@ export default function SolutionsAccordion({
 
   const toggle = useCallback((id: string) => {
     const willExpand = expandedId !== id;
+    const isSwitching = willExpand && expandedId !== null;
     setExpandedId((prev) => (prev === id ? null : id));
 
-    if (willExpand) {
-      const el = itemRefs.current.get(id);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        const scrollTop = window.pageYOffset + rect.top - 80;
-        window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-      }
-    } else {
-      const firstEl = itemRefs.current.get(solutions[0]?.id);
-      if (firstEl) {
-        const rect = firstEl.getBoundingClientRect();
-        const scrollTop = window.pageYOffset + rect.top - 80;
-        window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-      }
-    }
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (willExpand) {
+          const el = itemRefs.current.get(id);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            const scrollTop = window.pageYOffset + rect.top - 80;
+            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+          }
+        } else {
+          const firstEl = itemRefs.current.get(solutions[0]?.id);
+          if (firstEl) {
+            const rect = firstEl.getBoundingClientRect();
+            const scrollTop = window.pageYOffset + rect.top - 80;
+            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+          }
+        }
+      });
+    });
   }, [expandedId, solutions]);
 
   return (
