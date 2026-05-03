@@ -33,20 +33,25 @@ export default function SolutionsAccordion({
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const toggle = useCallback((id: string) => {
-    setExpandedId((prev) => {
-      const next = prev === id ? null : id;
-      setTimeout(() => {
-        const targetId = next || solutions[0]?.id;
-        const el = itemRefs.current.get(targetId);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          const scrollTop = window.pageYOffset + rect.top - 80;
-          window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-        }
-      }, 300);
-      return next;
-    });
-  }, [solutions]);
+    const willExpand = expandedId !== id;
+    setExpandedId((prev) => (prev === id ? null : id));
+
+    if (willExpand) {
+      const el = itemRefs.current.get(id);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const scrollTop = window.pageYOffset + rect.top - 80;
+        window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      }
+    } else {
+      const firstEl = itemRefs.current.get(solutions[0]?.id);
+      if (firstEl) {
+        const rect = firstEl.getBoundingClientRect();
+        const scrollTop = window.pageYOffset + rect.top - 80;
+        window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      }
+    }
+  }, [expandedId, solutions]);
 
   return (
     <div className="space-y-3">
