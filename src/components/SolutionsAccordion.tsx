@@ -31,32 +31,37 @@ export default function SolutionsAccordion({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const pendingExpand = useRef<string | null>(null);
+
+  const scrollToItem = useCallback((id: string) => {
+    const el = itemRefs.current.get(id);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const scrollTop = window.pageYOffset + rect.top - 80;
+      window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+    }
+  }, []);
 
   const toggle = useCallback((id: string) => {
-    const willExpand = expandedId !== id;
-    const isSwitching = willExpand && expandedId !== null;
-    setExpandedId((prev) => (prev === id ? null : id));
+    if (expandedId === id) {
+      setExpandedId(null);
+      setTimeout(() => scrollToItem(solutions[0]?.id), 500);
+      return;
+    }
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (willExpand) {
-          const el = itemRefs.current.get(id);
-          if (el) {
-            const rect = el.getBoundingClientRect();
-            const scrollTop = window.pageYOffset + rect.top - 80;
-            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-          }
-        } else {
-          const firstEl = itemRefs.current.get(solutions[0]?.id);
-          if (firstEl) {
-            const rect = firstEl.getBoundingClientRect();
-            const scrollTop = window.pageYOffset + rect.top - 80;
-            window.scrollTo({ top: scrollTop, behavior: 'smooth' });
-          }
-        }
-      });
-    });
-  }, [expandedId, solutions]);
+    if (expandedId !== null) {
+      pendingExpand.current = id;
+      setExpandedId(null);
+      setTimeout(() => {
+        setExpandedId(id);
+        pendingExpand.current = null;
+        requestAnimationFrame(() => scrollToItem(id));
+      }, 300);
+    } else {
+      setExpandedId(id);
+      requestAnimationFrame(() => scrollToItem(id));
+    }
+  }, [expandedId, solutions, scrollToItem]);
 
   return (
     <div className="space-y-3">
