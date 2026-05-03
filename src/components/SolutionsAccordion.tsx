@@ -28,25 +28,17 @@ export default function SolutionsAccordion({
   productsMap: Map<string, Product>;
   categoriesMap: Map<string, string>;
 }) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const toggle = (id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
   return (
     <div className="space-y-3">
       {solutions.map((sol) => {
-        const isExpanded = expandedIds.has(sol.id);
+        const isExpanded = expandedId === sol.id;
         const isHovered = hoveredId === sol.id;
         const hasHover = hoveredId !== null;
 
@@ -65,8 +57,8 @@ export default function SolutionsAccordion({
               onMouseLeave={() => setHoveredId(null)}
               className="relative w-full overflow-hidden rounded-2xl transition-all duration-500"
               style={{
-                aspectRatio: isExpanded ? undefined : '21/4',
-                minHeight: isExpanded ? undefined : '120px',
+                aspectRatio: isExpanded ? '21/2' : '21/4',
+                minHeight: '120px',
               }}
             >
               <div
