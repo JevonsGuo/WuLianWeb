@@ -1,11 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, MapPin, Phone, Clock, Send } from 'lucide-react';
 
 export default function ContactPage() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((result) => {
+        if (result.data) setSettings(result.data);
+      });
+  }, []);
 
   const validatePhone = (value: string) => {
     setPhone(value);
@@ -20,6 +29,9 @@ export default function ContactPage() {
       setPhoneError('');
     }
   };
+
+  const formEmail = settings.contact_form_email || 'crab@gyfolk.com';
+  const formAction = `https://formsubmit.co/${formEmail}`;
 
   return (
     <>
@@ -46,8 +58,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">电话咨询</h3>
-                  <p className="text-surface-500 text-sm mt-1">400-888-6688</p>
-                  <p className="text-surface-400 text-xs mt-1">工作日 9:00 - 18:00</p>
+                  <p className="text-surface-500 text-sm mt-1">{settings.contact_phone || '400-888-6688'}</p>
+                  <p className="text-surface-400 text-xs mt-1">{settings.contact_phone_note || '工作日 9:00 - 18:00'}</p>
                 </div>
               </div>
             </div>
@@ -59,8 +71,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">电子邮件</h3>
-                  <p className="text-surface-500 text-sm mt-1">contact@wulian-tech.com</p>
-                  <p className="text-surface-400 text-xs mt-1">我们将在 24 小时内回复</p>
+                  <p className="text-surface-500 text-sm mt-1">{settings.contact_email || 'contact@wulian-tech.com'}</p>
+                  <p className="text-surface-400 text-xs mt-1">{settings.contact_email_note || '我们将在 24 小时内回复'}</p>
                 </div>
               </div>
             </div>
@@ -72,8 +84,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">公司地址</h3>
-                  <p className="text-surface-500 text-sm mt-1">上海市浦东新区张江高科</p>
-                  <p className="text-surface-400 text-xs mt-1">博云路2号浦软大厦 18F</p>
+                  <p className="text-surface-500 text-sm mt-1">{settings.contact_address || '上海市浦东新区张江高科'}</p>
+                  <p className="text-surface-400 text-xs mt-1">{settings.contact_address_detail || '博云路2号浦软大厦 18F'}</p>
                 </div>
               </div>
             </div>
@@ -85,8 +97,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">工作时间</h3>
-                  <p className="text-surface-500 text-sm mt-1">周一至周五 9:00 - 18:00</p>
-                  <p className="text-surface-400 text-xs mt-1">法定节假日除外</p>
+                  <p className="text-surface-500 text-sm mt-1">{settings.contact_work_time || '周一至周五 9:00 - 18:00'}</p>
+                  <p className="text-surface-400 text-xs mt-1">{settings.contact_work_time_note || '法定节假日除外'}</p>
                 </div>
               </div>
             </div>
@@ -98,7 +110,7 @@ export default function ContactPage() {
               <p className="text-surface-400 text-sm mb-8">填写以下表单，我们的团队会尽快与您取得联系</p>
 
               <form
-                action="https://formsubmit.co/crab@gyfolk.com"
+                action={formAction}
                 method="POST"
                 onSubmit={(e) => {
                   if (phoneError) {

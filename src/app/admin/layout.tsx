@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Tag, Box, Lightbulb, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Tag, Box, Lightbulb, Settings, LogOut, Menu, X } from 'lucide-react';
 
 const navItems = [
   { href: '/admin/categories', label: '产品大类', icon: Tag },
   { href: '/admin/products', label: '产品管理', icon: Box },
   { href: '/admin/solutions', label: '解决方案', icon: Lightbulb },
+  { href: '/admin/settings', label: '网站设置', icon: Settings },
 ];
 
 export default function AdminLayout({
