@@ -70,7 +70,7 @@ export default async function HomePage() {
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-surface-900 mb-4 tracking-tight">产品大类</h2>
             <p className="text-surface-500 max-w-2xl mx-auto leading-relaxed">
-              涵盖智能传感器、工业机器人、视觉检测系统三大核心产品线，满足不同工业场景需求。
+              涵盖多类核心产品线，满足不同工业场景需求。
             </p>
           </div>
           <CategoryCarousel categories={categories} />

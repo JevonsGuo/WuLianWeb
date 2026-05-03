@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, Cpu, Bot, Eye } from 'lucide-react';
 
@@ -17,34 +17,82 @@ export default function CategoryCarousel({ categories }: { categories: Category[
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [direction, setDirection] = useState<'left' | 'right'>('right');
+  const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pausedRef = useRef(false);
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  };
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  const scroll = useCallback((dir: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const cardWidth = el.querySelector<HTMLElement>(':scope > *')?.offsetWidth || 300;
+    const gap = 24;
+    el.scrollBy({ left: dir === 'left' ? -(cardWidth + gap) : (cardWidth + gap), behavior: 'smooth' });
+    setTimeout(checkScroll, 400);
+  }, [checkScroll]);
 
   useEffect(() => {
     checkScroll();
     window.addEventListener('resize', checkScroll);
     return () => window.removeEventListener('resize', checkScroll);
-  }, []);
+  }, [checkScroll]);
 
-  const scroll = (direction: 'left' | 'right') => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const cardWidth = el.querySelector<HTMLElement>(':scope > *')?.offsetWidth || 300;
-    const gap = 24;
-    const amount = (cardWidth + gap) * 1;
-    el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
-    setTimeout(checkScroll, 400);
+  useEffect(() => {
+    if (categories.length <= 3) return;
+
+    const startAuto = () => {
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+      autoTimerRef.current = setInterval(() => {
+        if (pausedRef.current) return;
+        const el = scrollRef.current;
+        if (!el) return;
+
+        const atStart = el.scrollLeft <= 2;
+        const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+
+        let dir: 'left' | 'right';
+        if (atEnd) {
+          dir = 'left';
+          setDirection('left');
+        } else if (atStart) {
+          dir = 'right';
+          setDirection('right');
+        } else {
+          dir = direction;
+        }
+
+        scroll(dir);
+      }, 3000);
+    };
+
+    startAuto();
+    return () => {
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+    };
+  }, [categories.length, direction, scroll]);
+
+  const handleMouseEnter = () => {
+    pausedRef.current = true;
+  };
+
+  const handleMouseLeave = () => {
+    pausedRef.current = false;
   };
 
   const showArrows = categories.length > 3;
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {showArrows && canScrollLeft && (
         <button
           onClick={() => scroll('left')}
