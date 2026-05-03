@@ -5,14 +5,20 @@ import { Mail, MapPin } from 'lucide-react';
 
 export default function Footer() {
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((result) => {
         if (result.data) setSettings(result.data);
-      });
+      })
+      .finally(() => setLoaded(true));
   }, []);
+
+  const email = loaded ? (settings.contact_email || 'contact@wulian-tech.com') : '';
+  const addressParts = [settings.contact_address, settings.contact_address_detail].filter(Boolean);
+  const address = loaded ? (addressParts.length > 0 ? addressParts.join(' ') : '上海市浦东新区张江高科 博云路2号浦软大厦 18F') : '';
 
   return (
     <footer className="bg-surface-900 text-surface-400 mt-auto">
@@ -47,11 +53,11 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center space-x-2">
                 <Mail size={14} className="text-brand-400 shrink-0" />
-                <span>{settings.contact_email || 'contact@wulian-tech.com'}</span>
+                <span>{email}</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin size={14} className="text-brand-400 shrink-0" />
-                <span>{settings.contact_address || '上海市浦东新区张江高科'}</span>
+                <span>{address}</span>
               </li>
             </ul>
           </div>

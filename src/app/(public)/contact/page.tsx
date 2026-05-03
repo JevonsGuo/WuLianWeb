@@ -3,8 +3,21 @@
 import { useState, useEffect } from 'react';
 import { Mail, MapPin, Phone, Clock, Send } from 'lucide-react';
 
+const DEFAULTS: Record<string, string> = {
+  contact_phone: '400-888-6688',
+  contact_phone_note: '工作日 9:00 - 18:00',
+  contact_email: 'contact@wulian-tech.com',
+  contact_email_note: '我们将在 24 小时内回复',
+  contact_address: '上海市浦东新区张江高科',
+  contact_address_detail: '博云路2号浦软大厦 18F',
+  contact_work_time: '周一至周五 9:00 - 18:00',
+  contact_work_time_note: '法定节假日除外',
+  contact_form_email: 'crab@gyfolk.com',
+};
+
 export default function ContactPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loaded, setLoaded] = useState(false);
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
@@ -13,8 +26,11 @@ export default function ContactPage() {
       .then((r) => r.json())
       .then((result) => {
         if (result.data) setSettings(result.data);
-      });
+      })
+      .finally(() => setLoaded(true));
   }, []);
+
+  const s = (key: string) => loaded ? (settings[key] || DEFAULTS[key]) : '';
 
   const validatePhone = (value: string) => {
     setPhone(value);
@@ -30,8 +46,8 @@ export default function ContactPage() {
     }
   };
 
-  const formEmail = settings.contact_form_email || 'crab@gyfolk.com';
-  const formAction = `https://formsubmit.co/${formEmail}`;
+  const formEmail = s('contact_form_email');
+  const formAction = formEmail ? `https://formsubmit.co/${formEmail}` : '';
 
   return (
     <>
@@ -58,8 +74,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">电话咨询</h3>
-                  <p className="text-surface-500 text-sm mt-1">{settings.contact_phone || '400-888-6688'}</p>
-                  <p className="text-surface-400 text-xs mt-1">{settings.contact_phone_note || '工作日 9:00 - 18:00'}</p>
+                  <p className="text-surface-500 text-sm mt-1">{s('contact_phone')}</p>
+                  <p className="text-surface-400 text-xs mt-1">{s('contact_phone_note')}</p>
                 </div>
               </div>
             </div>
@@ -71,8 +87,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">电子邮件</h3>
-                  <p className="text-surface-500 text-sm mt-1">{settings.contact_email || 'contact@wulian-tech.com'}</p>
-                  <p className="text-surface-400 text-xs mt-1">{settings.contact_email_note || '我们将在 24 小时内回复'}</p>
+                  <p className="text-surface-500 text-sm mt-1">{s('contact_email')}</p>
+                  <p className="text-surface-400 text-xs mt-1">{s('contact_email_note')}</p>
                 </div>
               </div>
             </div>
@@ -84,8 +100,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">公司地址</h3>
-                  <p className="text-surface-500 text-sm mt-1">{settings.contact_address || '上海市浦东新区张江高科'}</p>
-                  <p className="text-surface-400 text-xs mt-1">{settings.contact_address_detail || '博云路2号浦软大厦 18F'}</p>
+                  <p className="text-surface-500 text-sm mt-1">{s('contact_address')}</p>
+                  <p className="text-surface-400 text-xs mt-1">{s('contact_address_detail')}</p>
                 </div>
               </div>
             </div>
@@ -97,8 +113,8 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-surface-900">工作时间</h3>
-                  <p className="text-surface-500 text-sm mt-1">{settings.contact_work_time || '周一至周五 9:00 - 18:00'}</p>
-                  <p className="text-surface-400 text-xs mt-1">{settings.contact_work_time_note || '法定节假日除外'}</p>
+                  <p className="text-surface-500 text-sm mt-1">{s('contact_work_time')}</p>
+                  <p className="text-surface-400 text-xs mt-1">{s('contact_work_time_note')}</p>
                 </div>
               </div>
             </div>
@@ -109,82 +125,84 @@ export default function ContactPage() {
               <h2 className="text-xl font-bold text-surface-900 mb-1">发送消息</h2>
               <p className="text-surface-400 text-sm mb-8">填写以下表单，我们的团队会尽快与您取得联系</p>
 
-              <form
-                action={formAction}
-                method="POST"
-                onSubmit={(e) => {
-                  if (phoneError) {
-                    e.preventDefault();
-                  }
-                }}
-                className="space-y-5"
-              >
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-1.5">姓名</label>
-                    <input
-                      type="text"
-                      name="name"
-                      required
-                      className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
-                      placeholder="您的姓名"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-1.5">公司</label>
-                    <input
-                      type="text"
-                      name="company"
-                      className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
-                      placeholder="公司名称"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-1.5">邮箱</label>
-                    <input
-                      type="email"
-                      name="email"
-                      required
-                      className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
-                      placeholder="您的邮箱"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-1.5">电话</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={phone}
-                      onChange={(e) => validatePhone(e.target.value)}
-                      className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow ${phoneError ? 'border-red-300 bg-red-50/30' : 'border-surface-200'}`}
-                      placeholder="手机号或座机号码"
-                    />
-                    {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-surface-700 mb-1.5">咨询内容</label>
-                  <textarea
-                    name="message"
-                    required
-                    rows={5}
-                    className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
-                    placeholder="请描述您的需求或问题..."
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="inline-flex items-center space-x-2 px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors duration-200 shadow-sm"
+              {formAction && (
+                <form
+                  action={formAction}
+                  method="POST"
+                  onSubmit={(e) => {
+                    if (phoneError) {
+                      e.preventDefault();
+                    }
+                  }}
+                  className="space-y-5"
                 >
-                  <Send size={16} />
-                  <span>发送消息</span>
-                </button>
-              </form>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1.5">姓名</label>
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                        className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+                        placeholder="您的姓名"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1.5">公司</label>
+                      <input
+                        type="text"
+                        name="company"
+                        className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+                        placeholder="公司名称"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1.5">邮箱</label>
+                      <input
+                        type="email"
+                        name="email"
+                        required
+                        className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow"
+                        placeholder="您的邮箱"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 mb-1.5">电话</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={phone}
+                        onChange={(e) => validatePhone(e.target.value)}
+                        className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow ${phoneError ? 'border-red-300 bg-red-50/30' : 'border-surface-200'}`}
+                        placeholder="手机号或座机号码"
+                      />
+                      {phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-surface-700 mb-1.5">咨询内容</label>
+                    <textarea
+                      name="message"
+                      required
+                      rows={5}
+                      className="w-full px-4 py-2.5 border border-surface-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-shadow resize-none"
+                      placeholder="请描述您的需求或问题..."
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="inline-flex items-center space-x-2 px-6 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-medium hover:bg-brand-700 transition-colors duration-200 shadow-sm"
+                  >
+                    <Send size={16} />
+                    <span>发送消息</span>
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
