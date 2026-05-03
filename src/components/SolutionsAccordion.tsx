@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ArrowRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 interface Solution {
   id: string;
@@ -30,10 +30,27 @@ export default function SolutionsAccordion({
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  const toggle = (id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
-  };
+  const toggle = useCallback((id: string) => {
+    setExpandedId((prev) => {
+      const next = prev === id ? null : id;
+      setTimeout(() => {
+        if (next) {
+          const el = itemRefs.current.get(next);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else {
+          const firstEl = itemRefs.current.get(solutions[0]?.id);
+          if (firstEl) {
+            firstEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }, 300);
+      return next;
+    });
+  }, [solutions]);
 
   return (
     <div className="space-y-3">
@@ -50,7 +67,12 @@ export default function SolutionsAccordion({
           .filter(Boolean);
 
         return (
-          <div key={sol.id}>
+          <div
+            key={sol.id}
+            ref={(el) => {
+              if (el) itemRefs.current.set(sol.id, el);
+            }}
+          >
             <button
               onClick={() => toggle(sol.id)}
               onMouseEnter={() => setHoveredId(sol.id)}
@@ -100,10 +122,10 @@ export default function SolutionsAccordion({
 
             <div
               className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                isExpanded ? 'max-h-[800px] opacity-100 mt-3' : 'max-h-0 opacity-0'
               }`}
             >
-              <div className="bg-white rounded-b-2xl border border-t-0 border-surface-200/80 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-surface-200/80 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   <div className="md:w-2/5 aspect-video md:aspect-auto min-h-[220px] bg-gradient-to-br from-emerald-50 to-teal-50 overflow-hidden">
                     {sol.image_url ? (
