@@ -33,14 +33,31 @@ export default function SolutionsAccordion({
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pendingExpand = useRef<string | null>(null);
 
+  const smoothScrollTo = useCallback((targetY: number) => {
+    const startY = window.pageYOffset;
+    const diff = targetY - startY;
+    if (Math.abs(diff) < 5) return;
+    const duration = 600;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      window.scrollTo(0, startY + diff * ease);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, []);
+
   const scrollToItem = useCallback((id: string) => {
     const el = itemRefs.current.get(id);
     if (el) {
       const rect = el.getBoundingClientRect();
-      const scrollTop = window.pageYOffset + rect.top - 80;
-      window.scrollTo({ top: scrollTop, behavior: 'smooth' });
+      const targetY = window.pageYOffset + rect.top - 80;
+      smoothScrollTo(targetY);
     }
-  }, []);
+  }, [smoothScrollTo]);
 
   const toggle = useCallback((id: string) => {
     if (expandedId === id) {
