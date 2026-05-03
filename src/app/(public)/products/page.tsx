@@ -113,7 +113,7 @@ function ProductsContent() {
     setProductsKey((k) => k + 1);
     setShowProducts(true);
     const cat = categories.find((c) => c.id === id);
-    router.replace(`${pathname}?category=${cat?.slug || ''}`);
+    router.replace(`${pathname}?category=${cat?.slug || ''}`, { scroll: false });
   };
 
   const handleProductSelect = (id: string) => {
@@ -124,7 +124,7 @@ function ProductsContent() {
     const params = new URLSearchParams();
     if (cat?.slug) params.set('category', cat.slug);
     if (product?.model) params.set('product', product.model);
-    router.replace(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   return (
